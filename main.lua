@@ -28,10 +28,10 @@ end
 soldiers = {
     {
         actualChunk = {
-            {x=100,y=300,w=80,h=120,rx=0,ry=0},
-            {x=100,y=330,w=80,h=120,rx=0,ry=0},
-            {x=130,y=300,w=80,h=120,rx=0,ry=0},
-            {x=250,y=350,w=80,h=120,rx=0,ry=0},
+            {x=100,y=300,w=80,h=120,rx=0,ry=0,pos="above"},
+            {x=100,y=330,w=80,h=120,rx=0,ry=0,pos="above"},
+            {x=130,y=300,w=80,h=120,rx=0,ry=0,pos="below"},
+            {x=250,y=350,w=80,h=120,rx=0,ry=0,pos="below"},
         },
         player = true,
         controls = {
@@ -45,7 +45,27 @@ soldiers = {
         stats = {
             speed = 300,
         },
-        anims = {},
+        anims = {
+            actual = "idle",
+            idle = {
+                [1] = {
+                    time = .05,
+                    {part = "hand", side = "L", prop= "ly", value = 79},
+                },
+            },
+            shooting = {
+                [1] = {
+                    time = .05,
+                    {part = "hand", side = "L", prop= "ly", value = 59},
+                    {part = "hand", side = "R", prop = "ly", value = 49}
+                },
+                [2] = {
+                    time = .05,
+                    {part = "hand", side = "L", prop= "ly", value = 69},
+                    {part = "hand", side = "R", prop = "ly", value = 59}
+                },
+            },
+        },
         textures = {
             head = love.graphics.newImage("textures/soldiers/usa/base/head.png"),
             torso = love.graphics.newImage("textures/soldiers/usa/base/torso.png"),
@@ -78,7 +98,6 @@ soldiers = {
             head  = {
                 x=400, y=270, w=30, h=20, rx=0, ry=0
             },
-
             RIGHTforearm = {
                 x = 100, y = 100, w = 30, h = 20, ro = -45, rx = 0, ry = 0, long = 40,
                 arm = {
@@ -161,7 +180,7 @@ function love.load()
     soldierScripts = {
         update = require("src.soldier_update"),
         draw   = require("src.soldier_draw"),
-        -- anims  = require("soldiersScript.anims"),
+        anims  = require("src.soldier_anims"),
     }
 
     -- worldScripts = {
@@ -175,11 +194,17 @@ function love.resize(w, h)
     win.h = h
 end
 
+function love.keypressed(key)
+    local number = tonumber(key)
+    if type(number) == "number" then win.s = number end
+end
+
 function love.update(dt)
 
     for _,body in ipairs(soldiers) do
         -- soldierScripts.anims(body, dt)
         soldierScripts.update(body, dt)
+        soldierScripts.anims(body, dt)
     end
     collectgarbage("collect")
 end

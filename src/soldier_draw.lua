@@ -125,11 +125,14 @@ return function()
 
         end
 
-        local function drawChunk(chunk)
+        local function drawChunk(chunk, pos)
             for i = #chunk, 1, -1 do
                 local obj = chunk[i]
 
-                love.graphics.rectangle("fill", obj.x, obj.y, obj.w, obj.h)
+                if obj.pos == pos then
+                    love.graphics.rectangle("fill", obj.x, obj.y, obj.w, obj.h)
+                end
+
             end
 
         end
@@ -141,6 +144,7 @@ return function()
         win.x = -head.x + ((win.w / 2) * win.s)
         win.y = -head.y + ((win.h / 2) * win.s)
 
+        love.graphics.scale(1 / win.s)
         love.graphics.translate(win.x, win.y)
 
         -- Debug
@@ -150,6 +154,8 @@ return function()
         love.graphics.circle("line", Lhand.x, Lhand.y, 14)
         love.graphics.circle("line", Rhand.x, Rhand.y, 14)
         love.graphics.setColor(1, 1, 1)
+
+        drawChunk(soldier.actualChunk, "below")
 
         -- 1. pies y piernas que van detrás
         drawLeftLeg()
@@ -167,7 +173,7 @@ return function()
         -- 4. cabeza por encima de todo
         drawHead()
 
-        drawChunk(soldier.actualChunk)
+        drawChunk(soldier.actualChunk, "above")
 
         -- Debug pivot torso
         love.graphics.setColor(1, 0, 0)
