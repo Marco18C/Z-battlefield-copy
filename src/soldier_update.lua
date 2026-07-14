@@ -9,15 +9,81 @@ function distance(x1, y1, x2, y2)
     return dx * dx + dy * dy
 end
 
-local function checkCollision(cx, cy, w, h, obj)
-    -- convertir centro a esquina
-    local x = cx - w/2
-    local y = cy - h/2
+local function resolveRotatedCollision(px, py, w, h, obj)
+    local hw, hh = w/2, h/2
 
-    return x < obj.x + obj.w and
-           x + w > obj.x and
-           y < obj.y + obj.h and
-           y + h > obj.y
+    local ox = obj.x
+    local oy = obj.y
+
+    -- mover al espacio local
+    local dx = px - ox
+    local dy = py - oy
+
+    local localX =  dx * obj.cos + dy * obj.sin
+    local localY = -dx * obj.sin + dy * obj.cos
+
+    local halfW = obj.w/2
+    local halfH = obj.h/2
+
+    -- calcular penetración
+    local penX = (halfW + hw) - math.abs(localX)
+    local penY = (halfH + hh) - math.abs(localY)
+
+    if penX < penY then
+        -- empujar en X local
+        if localX > 0 then
+            localX = halfW + hw
+        else
+            localX = -halfW - hw
+        end
+    else
+        -- empujar en Y local
+        if localY > 0 then
+            localY = halfH + hh
+        else
+            localY = -halfH - hh
+        end
+    end
+
+    -- volver a espacio mundo
+    local worldX = ox + (localX * obj.cos - localY * obj.sin)
+    local worldY = oy + (localX * obj.sin + localY * obj.cos)
+
+    return worldX, worldY
+end
+
+local function checkCollision(cx, cy, w, h, obj)
+    local hw, hh = w/2, h/2
+
+    -- centro del jugador
+    local px, py = cx, cy
+
+    -- centro del objeto
+    local ox = obj.x
+    local oy = obj.y
+
+    -- caso rápido (sin rotación)
+    if not obj.rx or obj.rx == 0 then
+        return (px - hw) < (ox + obj.w/2) and
+               (px + hw) > (ox - obj.w/2) and
+               (py - hh) < (oy + obj.h/2) and
+               (py + hh) > (oy - obj.h/2)
+    end
+
+    -- =========================
+    -- transformar punto al espacio del objeto
+    -- =========================
+    local dx = px - ox
+    local dy = py - oy
+
+    local localX =  dx * obj.cos + dy * obj.sin
+    local localY = -dx * obj.sin + dy * obj.cos
+
+    -- =========================
+    -- colisión como AABB en espacio local
+    -- =========================
+    return math.abs(localX) <= (obj.w/2 + hw) and
+           math.abs(localY) <= (obj.h/2 + hh)
 end
 
 local function updateHeadToso(soldier, dt)
@@ -52,14 +118,16 @@ local function updateHeadToso(soldier, dt)
 
         for _, obj in ipairs(objs) do
             if checkCollision(newX, head.y, w, h, obj) then
-                if dx > 0 then
-                    -- chocando por la derecha
-                    newX = obj.x - w/2
-                elseif dx < 0 then
-                    -- chocando por la izquierda
-                    newX = obj.x + obj.w + w/2
+                if obj.rx and obj.rx ~= 0 then
+                    local rx, ry = resolveRotatedCollision(newX, head.y, w, h, obj)
+                    newX = rx -- ✅ SOLO X
+                else
+                    if dx > 0 then
+                        newX = obj.x - (obj.w/2) - w/2
+                    elseif dx < 0 then
+                        newX = obj.x + (obj.w/2) + w/2
+                    end
                 end
-                break
             end
         end
 
@@ -72,14 +140,16 @@ local function updateHeadToso(soldier, dt)
 
         for _, obj in ipairs(objs) do
             if checkCollision(head.x, newY, w, h, obj) then
-                if dy > 0 then
-                    -- chocando abajo
-                    newY = obj.y - h/2
-                elseif dy < 0 then
-                    -- chocando arriba
-                    newY = obj.y + obj.h + h/2
+                if obj.rx and obj.rx ~= 0 then
+                    local rx, ry = resolveRotatedCollision(head.x, newY, w, h, obj)
+                    newY = ry -- ✅ SOLO Y
+                else
+                    if dy > 0 then
+                        newY = obj.y - (obj.h/2) - h/2
+                    elseif dy < 0 then
+                        newY = obj.y + (obj.h/2) + h/2
+                    end
                 end
-                break
             end
         end
 
@@ -127,8 +197,8 @@ local function updateRightHand(soldier, arm, differenceR)
     local rightHand    = rightArm.hand
 
     -- mano --
-    rightHand.x  = (cos(head.rx) * rightHand.ly) + torso.x
-    rightHand.y  = (sin(head.rx) * rightHand.ly) + torso.y
+    rightHand.x  = (cos(head.rx + rightHand.ro) * rightHand.ly) + torso.x
+    rightHand.y  = (sin(head.rx + rightHand.ro) * rightHand.ly) + torso.y
     rightHand.rx = head.rx
 
     -- brazo --
@@ -176,8 +246,8 @@ local function updateLeftHand(soldier, arm, difference)
     local leftHand    = leftArm.hand
 
     -- mano --
-    local cosHead = cos(head.rx)
-    local sinHead = sin(head.rx)
+    local cosHead = cos(head.rx + leftHand.ro)
+    local sinHead = sin(head.rx + leftHand.ro)
 
     leftHand.x  = cosHead * leftHand.ly + torso.x
     leftHand.y  = sinHead * leftHand.ly + torso.y
@@ -248,6 +318,244 @@ local function updateControls(soldier, dt)
 
 end
 
+-- =====================================================
+--  SISTEMA DE PIES
+-- =====================================================
+-- local function updateFeet(soldier, dt)
+--     local head  = soldier.parts.head
+--     local torso = soldier.parts.torso
+--     local ctrl  = soldier.controls
+-- 
+--     local rightFoot = soldier.parts.RIGHTforeleg.leg.foot
+--     local leftFoot  = soldier.parts.LEFTforeleg.leg.foot
+-- 
+--     -- =====================
+--     -- Vector de movimiento
+--     -- =====================
+--     local mdx, mdy = 0, 0
+--     if ctrl.u then mdy = mdy - 1 end
+--     if ctrl.d then mdy = mdy + 1 end
+--     if ctrl.l then mdx = mdx - 1 end
+--     if ctrl.r then mdx = mdx + 1 end
+-- 
+--     local isMoving = (mdx ~= 0 or mdy ~= 0)
+-- 
+--     local mvX, mvY = 0, 0
+--     if isMoving then
+--         local len = math.sqrt(mdx * mdx + mdy * mdy)
+--         mvX, mvY = mdx / len, mdy / len
+--     end
+-- 
+--     -- =====================
+--     -- Base de orientación
+--     -- =====================
+--     local lookAngle = head.rx
+--     local cosL =  math.cos(lookAngle)
+--     local sinL =  math.sin(lookAngle)
+--     -- eje perpendicular derecho respecto al look
+--     local perpX = -sinL
+--     local perpY =  cosL
+-- 
+--     -- Qué tan lateral es el movimiento respecto a donde mira (0=frente/atrás, 1=lateral puro)
+--     local lateralFactor = 0
+--     local forwardFactor = 0
+--     if isMoving then
+--         local moveAngle = math.atan2(mdy, mdx)
+--         local relAngle  = moveAngle - lookAngle
+--         relAngle = (relAngle + math.pi) % (math.pi * 2) - math.pi
+--         lateralFactor = math.abs(math.sin(relAngle))
+--         forwardFactor = math.abs(math.cos(relAngle))
+--     end
+-- 
+--     -- =====================
+--     -- Parámetros
+--     -- =====================
+--     local footWidth  = 24              -- separación lateral del centro
+--     local lookahead  = 130              -- anticipo en dirección de movimiento
+--     local stepThresh = isMoving and 6 or 20  -- umbral para disparar un paso
+--     local stepDur    = 0.14            -- duración de un paso en segundos
+-- 
+--     -- Movimiento lateral → reducir anticipación para que los pies queden lado a lado
+--     -- (lateralFactor=1 deja solo ~15% del lookahead → sin pie delante del otro)
+--     local lead = lookahead + soldier.stats.speed * 0.12
+--     local baseLook = lookahead
+-- 
+--     -- Reducir MUCHO el adelanto cuando es movimiento frontal
+--     local forwardReduce = 0.55  -- qué tanto recorta al ir hacia adelante
+-- 
+--     -- Mantener lateral como antes (pero un poco más suave)
+--     local lateralReduce = 0.65
+-- 
+--     local effLookahead =
+--         baseLook *
+--         (1 - lateralFactor * lateralReduce) *
+--         (1 - forwardFactor * forwardReduce)
+-- 
+--     -- =====================
+--     -- Posiciones ideales
+--     -- =====================
+--     -- Pie derecho: desplazado a la derecha del look + anticipo en dir. movimiento
+--     -- Pie izquierdo: desplazado a la izquierda del look + mismo anticipo
+--     local baseX = torso.x + mvX * effLookahead
+--     local baseY = torso.y + mvY * effLookahead
+-- 
+--     local rIdealX = baseX + perpX * footWidth
+--     local rIdealY = baseY + perpY * footWidth
+--     local lIdealX = baseX - perpX * footWidth
+--     local lIdealY = baseY - perpY * footWidth
+-- 
+--     -- =====================
+--     -- Inicializar estado
+--     -- =====================
+--     if not soldier._footState then
+--         rightFoot.x = rIdealX; rightFoot.y = rIdealY
+--         leftFoot.x  = lIdealX; leftFoot.y  = lIdealY
+-- 
+--         soldier._footState = {
+--             R = {
+--                 x = rIdealX, y = rIdealY,
+--                 stepping = false, t = 1,
+--                 fromX = rIdealX, fromY = rIdealY,
+--                 toX   = rIdealX, toY   = rIdealY,
+--             },
+--             L = {
+--                 x = lIdealX, y = lIdealY,
+--                 stepping = false, t = 1,
+--                 fromX = lIdealX, fromY = lIdealY,
+--                 toX   = lIdealX, toY   = lIdealY,
+--             },
+--             nextStep = "R",  -- qué pie toca dar el siguiente paso
+--         }
+--     end
+-- 
+--     local fs = soldier._footState
+-- 
+--     -- =====================
+--     -- Disparar pasos
+--     -- =====================
+--     local function d2(ax, ay, bx, by)
+--         local dx, dy = ax - bx, ay - by
+--         return dx * dx + dy * dy
+--     end
+-- 
+--     local thresh2 = stepThresh * stepThresh
+-- 
+--     -- Solo un pie da pasos a la vez → alternancia natural
+--     local neitherStepping = not fs.R.stepping and not fs.L.stepping
+-- 
+--     if neitherStepping then
+--         local rNeed = d2(fs.R.x, fs.R.y, rIdealX, rIdealY) > thresh2
+--         local lNeed = d2(fs.L.x, fs.L.y, lIdealX, lIdealY) > thresh2
+-- 
+--         local function startStep(fst, toX, toY, nxt)
+--             fst.stepping = true
+--             fst.t        = 0
+--             fst.fromX    = fst.x;  fst.fromY = fst.y
+--             fst.toX      = toX;    fst.toY   = toY
+--             fs.nextStep  = nxt
+--         end
+-- 
+--         -- Respetar turno para lograr la alternancia; si solo uno necesita → ese pisa
+--         if rNeed and (fs.nextStep == "R" or not lNeed) then
+--             startStep(fs.R, rIdealX, rIdealY, "L")
+--         elseif lNeed then
+--             startStep(fs.L, lIdealX, lIdealY, "R")
+--         end
+--     end
+-- 
+--     -- =====================
+--     -- Animar pasos (ease in-out)
+--     -- =====================
+--     local function animStep(fst, footPart)
+--         if fst.stepping then
+--             fst.t = math.min(1, fst.t + dt / stepDur)
+-- 
+--             local t    = fst.t
+--             -- ease in-out cuadrático
+--             local ease = t < 0.5
+--                 and (2 * t * t)
+--                 or  (1 - (-2 * t + 2)^2 * 0.5)
+-- 
+--             footPart.x = fst.fromX + (fst.toX - fst.fromX) * ease
+--             footPart.y = fst.fromY + (fst.toY - fst.fromY) * ease
+-- 
+--             if fst.t >= 1 then
+--                 fst.stepping = false
+--                 fst.x = fst.toX;  fst.y = fst.toY
+--                 footPart.x = fst.x; footPart.y = fst.y
+--             end
+--         else
+--             footPart.x = fst.x
+--             footPart.y = fst.y
+--         end
+--     end
+-- 
+--     animStep(fs.R, rightFoot)
+--     animStep(fs.L, leftFoot)
+-- 
+--     -- =====================
+--     -- Rotación de pies → siempre apuntan en la dirección del look
+--     -- =====================
+--     rightFoot.rx = lerpAngle(rightFoot.rx, lookAngle, 10 * dt)
+--     leftFoot.rx  = lerpAngle(leftFoot.rx,  lookAngle, 10 * dt)
+-- end
+-- 
+-- local function updateLegs(soldier)
+--     local parts = soldier.parts
+--     local torso = parts.torso
+-- 
+--     -- =========================
+--     -- Calcular hips en mundo
+--     -- =========================
+--     local cosT = math.cos(torso.rx)
+--     local sinT = math.sin(torso.rx)
+-- 
+--     local function getHip(offset)
+--         return
+--             torso.x + offset.x * cosT - offset.y * sinT,
+--             torso.y + offset.x * sinT + offset.y * cosT
+--     end
+-- 
+--     local hipRX, hipRY = getHip(torso.hipR)
+--     local hipLX, hipLY = getHip(torso.hipL)
+-- 
+--     -- =========================
+--     -- Resolver una pierna
+--     -- =========================
+--     local function solveLeg(foreleg, hipX, hipY)
+--         local leg  = foreleg.leg
+--         local foot = leg.foot
+-- 
+--         -- =====================
+--         -- Antepierna (foreleg)
+--         -- =====================
+--         foreleg.x = hipX
+--         foreleg.y = hipY
+-- 
+--         local dx1 = foot.x - hipX
+--         local dy1 = foot.y - hipY
+-- 
+--         foreleg.rx = math.atan2(dy1, dx1)
+-- 
+--         -- =====================
+--         -- Pierna (leg)
+--         -- =====================
+--         leg.x = foot.x
+--         leg.y = foot.y
+-- 
+--         local dx2 = hipX - foot.x
+--         local dy2 = hipY - foot.y
+-- 
+--         leg.rx = math.atan2(dy2, dx2)
+--     end
+-- 
+--     -- =========================
+--     -- Aplicar a ambas piernas
+--     -- =========================
+--     solveLeg(parts.RIGHTforeleg, hipRX, hipRY)
+--     solveLeg(parts.LEFTforeleg,  hipLX, hipLY)
+-- end
+
 return function(body, dt)
     local soldier = body
 
@@ -260,6 +568,9 @@ return function(body, dt)
 
     updateRightHand(soldier, soldier.parts.RIGHTforearm.arm, differenceR)
     updateLeftHand(soldier, soldier.parts.LEFTforearm.arm, differenceR)
+
+    -- updateFeet(soldier, dt)
+    -- updateLegs(soldier)
 
     updateControls(soldier, dt)
 end

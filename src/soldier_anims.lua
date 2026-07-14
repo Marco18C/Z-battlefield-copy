@@ -24,13 +24,31 @@ local function resolveTarget(ent, cmd)
         end
     end
 
+    if cmd.part == "inHand" then
+        if cmd.side == "R" then
+            return ent.parts.RIGHTforearm.arm.hand.inHand, cmd.prop
+        else
+            return ent.parts.LEFTforearm.arm.hand.inHand, cmd.prop
+        end
+    end
+
+    -- if cmd.part == "weapon" and cmd.prop ~= "func" then
+    --     if cmd.side == "R" then
+    --         return ent.magazine, cmd.prop
+    --     else
+    --         return ent.parts.LEFTforeleg.leg.foot, cmd.prop
+    --     end
+    -- end
+
 end
 
 return function(ent, dt)
 
     local animName = ent.anims.actual
-    local anim = ent.anims[animName]
+    local anim = ent.magazine[ent.magazine.actual].anims[animName]
     if not anim then return end
+
+    local loop = anim.loop ~= false -- default: true
 
     -- detectar cambio de animación --
     if ent._lastAnim ~= animName then
@@ -47,8 +65,18 @@ return function(ent, dt)
     if not frameA then return end
 
     local nextIndex = frameIndex + 1
-    if nextIndex > #anim then nextIndex = 1 end
-    local frameB = anim[nextIndex]
+    local frameB
+
+    if nextIndex > #anim then
+        if loop then
+            nextIndex = 1
+            frameB = anim[nextIndex]
+        else
+            frameB = frameA -- 🔥 CLAVE
+        end
+    else
+        frameB = anim[nextIndex]
+    end
 
     local duration = frameA.time or 0.25
 
@@ -62,8 +90,7 @@ return function(ent, dt)
         local cmdB = frameB[i] or cmdA
 
         if type(cmdA) == "table" then
-
-            local target, prop = resolveTarget(ent, cmdA)
+                local target, prop = resolveTarget(ent, cmdA)
 
             if target and prop then
 
@@ -71,13 +98,9 @@ return function(ent, dt)
                 local b = cmdB.value or a
 
                 if type(a)=="number" and type(b)=="number" then
-
                     target[prop] = lerp(a,b,t)
-
                 elseif t>=1 then
-
                     target[prop] = b
-
                 end
 
             end
@@ -87,7 +110,35 @@ return function(ent, dt)
     end
 
     while ent._animTime >= duration do
+
+        -- 🔥 DISPARAR EVENTOS DEL FRAME QUE TERMINA
+        for i=1,#frameA do
+            local cmd = frameA[i]
+            if type(cmd) == "table" then
+
+                if cmd.part == "weapon" and cmd.side == "func" then
+                    if type(cmd.prop) == "function" then
+                        local weapon = ent.magazine[ent.magazine.actual]
+                        cmd.prop(weapon, ent)
+                    end
+                end
+            end
+        end
+
+        if frameIndex + 1 > #anim then
+            if loop then
+                ent._animFrame = 1
+            else
+                ent.anims.actual = "idle"
+                return
+            end
+        else
+            ent._animFrame = frameIndex + 1
+        end
+
+        frameIndex = ent._animFrame
+
         ent._animTime = ent._animTime - duration
-        ent._animFrame = nextIndex
     end
+
 end
