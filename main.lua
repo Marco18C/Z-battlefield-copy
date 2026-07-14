@@ -459,7 +459,384 @@ soldiers = {
                 }
             },
         }
-    }
+    },
+    {
+        actualChunk = {},
+        player = false,
+        controls = {
+            u = false,
+            d = false,
+            l = false,
+            r = false,
+            moving = false,
+            last = "r",
+        },
+        stats = {
+            speed = 300,
+        },
+        anims = {},
+        textures = {
+            head = love.graphics.newImage("textures/soldiers/usa/base/head.png"),
+            torso = love.graphics.newImage("textures/soldiers/usa/base/torso.png"),
+            RIGHTforearm = love.graphics.newImage("textures/soldiers/usa/base/rigthForearm.png"),
+            RIGHTarm = love.graphics.newImage("textures/soldiers/usa/base/rigthArm.png"),
+            RIGHThand = {
+                [1] = love.graphics.newImage("textures/soldiers/usa/base/rightHand.png"),
+            },
+            RIGHTforeleg = {
+                img = love.graphics.newImage("textures/soldiers/usa/base/rigthForeleg.png"),
+                quads = {},
+            },
+            RIGHTleg = {
+                img = love.graphics.newImage("textures/soldiers/usa/base/rigthLeg.png"),
+                quads = {},
+            },
+            RIGHTfoot = love.graphics.newImage("textures/soldiers/usa/base/rigthFoot.png"),
+            LEFTforearm = love.graphics.newImage("textures/soldiers/usa/base/leftForearm.png"),
+            LEFTarm = love.graphics.newImage("textures/soldiers/usa/base/leftArm.png"),
+            LEFThand = {
+                [1] = love.graphics.newImage("textures/soldiers/usa/base/leftHand.png"),
+            },
+            LEFTforeleg = {
+                img = love.graphics.newImage("textures/soldiers/usa/base/leftForeleg.png"),
+                quads = {},
+            },
+            LEFTleg = {
+                img = love.graphics.newImage("textures/soldiers/usa/base/leftLeg.png"),
+                quads = {},
+            },
+            LEFTfoot = love.graphics.newImage("textures/soldiers/usa/base/leftFoot.png"),
+        },
+        magazine = {
+            actual = "first",
+            first  = {
+                offsetX=450,offsetY=300,damage=35,    -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
+                HandOffX=610,HandOffY=0,size=.08,     -- =0≡= cambiar ubicación intena del arma =≡0= --
+                mode="auto",  -- auto - burst - semi  -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
+                pos="first", -- first - second
+                fireRate=.05,fireTime=0,
+                func=function(weapon)end,
+                img={
+                    base=love.graphics.newImage("textures/weapons/guns/test_rifle/base.png"),
+                    ammo=love.graphics.newImage("textures/weapons/guns/test_rifle/ammo.png"),
+                },
+                props = {
+                    lever = {
+                        ox = 12,
+                        oy = 12,
+                    }
+                },
+                autoFire=false,
+                maxBullets=30,
+                bullets=30,
+                anims={
+                    actual = "idle",
+                    idle = {
+                        loop = false,
+                        [1] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 74},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(20)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "inHand", side = "L", prop = "img", value = "ammo"},
+                        },
+                    },
+                    shooting = {
+                        loop = false,
+                        [1] = {
+                            time = .025,
+                            {part = "hand", side = "L", prop = "ly", value = 69},
+                            {part = "hand", side = "R", prop = "ly", value = 59},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(20)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "weapon", side = "func", prop=function(weapon)weapon.bullets = math.max(0, weapon.bullets - 1) end, value = 0},
+                        },
+                        [2] = {
+                            time = .025,
+                            {part = "hand", side = "L", prop = "ly", value = 74},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(20)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+                        },
+                    },
+                    reload = {
+                        loop = false,
+                        [1] = {
+                            time = .25,
+                            {part = "hand", side = "L", prop = "ly", value = 78},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(20)},
+                            {part = "hand", side = "R", prop = "ro", value = rad(-9)},
+                        },
+                        [2] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 74},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(45)},
+                            {part = "hand", side = "R", prop = "ro", value = rad(-35)},
+                        },
+                        [3] = {
+                            time = .15,
+                            {part = "hand", side = "L", prop = "ly", value = 59},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(35)},
+                            {part = "hand", side = "R", prop = "ro", value = rad(-42)},
+                        },
+                        [4] = {
+                            time = .15,
+                            {part = "hand", side = "L", prop = "ly", value = 25},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop= "ro", value = rad(35)},
+                            {part = "hand", side = "R", prop= "ro", value = rad(-32)},
+                        },
+                        [5] = {
+                            time = .15,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(55)},
+                            {part = "hand", side = "R", prop = "ro", value = rad(-10)},
+                        },
+                        [6] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 74},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(20)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "weapon", side = "func", prop=function(weapon)weapon.bullets = weapon.maxBullets end, value = 0},
+                        },
+                    },
+                },
+            },
+            second = {
+                offsetX=10,offsetY=304,damage=35,
+                HandOffX=20,HandOffY=0,size=.035,
+                mode="semi", -- auto - burst - semi
+                pos="second", -- first - second
+                fireRate=.5,fireTime=0,
+                img={
+                    base=love.graphics.newImage("textures/weapons/guns/test_pistol/base.png"),
+                    ammo=love.graphics.newImage("textures/weapons/guns/test_pistol/ammo.png"),
+                },
+                autoFire=false,
+                maxBullets=10,
+                bullets=10,
+                anims={
+                    actual = "idle",
+                    idle = {
+                        loop = false,
+                        [1] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 79},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(37)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "inHand", side = "L", prop = "img", value = "none"},
+                        },
+                    },
+                    shooting = {
+                        loop = false,
+                        [1] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 49},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(37)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "weapon", side = "func", prop=function(weapon)weapon.bullets = math.max(0, weapon.bullets - 1) end, value = 0},
+                        },
+                        [2] = {
+                            time = .05,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 79},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(37)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+                        },
+                    },
+                    reload = {
+                        loop = false,
+                        [1] = {
+                            time = .1,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 79},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(37)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "inHand", side = "L", prop = "img", value = "none"},
+                        },
+                        [2] = {
+                            time = .15,
+                            {part = "hand", side = "L", prop = "ly", value = 59},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(35)},
+                            {part = "hand", side = "R", prop = "ro", value = rad(-9)},
+
+                            {part = "inHand", side = "L", prop = "img", value = "ammo"},
+                        },
+                        [3] = {
+                            time = .45,
+                            {part = "hand", side = "L", prop = "ly", value = 15},
+                            {part = "hand", side = "R", prop = "ly", value = 59},
+
+                            {part = "hand", side = "L", prop= "ro", value = rad(35)},
+                            {part = "hand", side = "R", prop= "ro", value = 0},
+                        },
+                        [4] = {
+                            time = .10,
+                            {part = "hand", side = "L", prop = "ly", value = 69},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(5)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "weapon", side = "func", prop=function(weapon)weapon.bullets = 10 end, value = 0},
+                        },
+                        [5] = {
+                            time = .25,
+                            {part = "hand", side = "L", prop = "ly", value = 73},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(12.5)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+
+                            {part = "inHand", side = "L", prop = "img", value = "none"},
+                        },
+                        [6] = {
+                            time = .3,
+                            {part = "hand", side = "L", prop = "ly", value = 29},
+                            {part = "hand", side = "R", prop = "ly", value = 69},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(15)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+                        },
+                        [7] = {
+                            time = .1,
+                            {part = "hand", side = "L", prop = "ly", value = 79},
+                            {part = "hand", side = "R", prop = "ly", value = 79},
+
+                            {part = "hand", side = "L", prop = "ro", value = rad(37)},
+                            {part = "hand", side = "R", prop = "ro", value = 0},
+                        },
+                    },
+                },
+            },
+        },
+        parts = {
+            dir = -1,
+            torso = {
+                x = 400, y = 300, w = 30, h = 20, rx = 0, ry = 0,
+                shouldR = {x=0,y=-26}, shouldL = {x=0,y=26},
+                hipR    = {x=0,y=-20}, hipL    = {x=0,y=20},
+                _lastSafe = {
+                    x=nil,
+                    y=nil,
+                    rx=nil,
+                    ly=nil
+                },
+            },
+            head  = {
+                x=400, y=270, w=30, h=20, rx=0, ry=0
+            },
+            RIGHTforearm = {
+                x = 100, y = 100, w = 30, h = 20, ro = -45, rx = 0, ry = 0, long = 40,
+                arm = {
+                    dist=7, x=100, y=100, w=30, h=20, ro=-45, rx=0, ry=0, long=40,
+                    hand = { -- mano derecha
+                        x=440, y=300, w=30, h=20, rx=0, ro=0, ly=59,
+                        _lastSafe = {
+                            x=nil,
+                            y=nil,
+                            rx=nil,
+                            ly=nil
+                        },
+                        inHand = {
+                            img = "none",
+                            rx  = 0,
+                            sx  = .04,
+                            sy  = .04,
+                            ox  = 0,
+                            oy  = 0,
+                        }
+                    }
+                }
+            },
+
+            LEFTforearm = {
+                x = 100, y = 100, w = 30, h = 20, ro = -45, rx = 0, ry = 0, long = 40,
+                arm = {
+                    dist=7, x=100, y=100, w=30, h=20, ro=-45, rx=0, ry=0, long=40,
+                    hand = { -- mano izquierda
+                        x=320, y=300, w=30, h=20, rx=0, ro=1, ly=69,
+                        _lastSafe = {
+                            x=nil,
+                            y=nil,
+                            rx=nil,
+                            ly=nil
+                        },
+                        inHand = {
+                            img = "ammo",
+                            rx  = 0,
+                            sx  = .04,
+                            sy  = .04,
+                            ox  = 0,
+                            oy  = 500,
+                        }
+                    }
+                }
+            },
+
+            RIGHTforeleg = {
+                x=100,y=100,w=30,h=20,ro=-45,rx=0,ry=0,long=40,
+                leg = {
+                    dist=7,x=100,y=100,w=30,h=20,ro=-45,rx=0,ry=0,long=40,
+                    foot = { -- pie derecho
+                        x=320,y=300,w=30,h=20,rx=rad(100),rl=0,ly=79,
+                        stepT = 0,
+                        _lastSafe = {
+                            x=nil,
+                            y=nil,
+                            rx=nil,
+                            ly=nil
+                        },
+                    }
+                }
+            },
+            LEFTforeleg = {
+                x=100,y=100,w=30,h=20,ro=-45,rx=0,ry=0,long=40,
+                leg = {
+                    dist=7,x=100,y=100,w=30,h=20,ro=-45,rx=0,ry=0,long=40,
+                    foot = { -- pie izquierdo
+                        x=320,y=300,w=30,h=20,rx=rad(80),rl=0,ly=80,
+                        stepT = 0,
+                        _lastSafe = {
+                            x=nil,
+                            y=nil,
+                            rx=nil,
+                            ly=nil
+                        },
+                    }
+                }
+            },
+        }
+    },
 }
 
 local function createLegQuads(tex)

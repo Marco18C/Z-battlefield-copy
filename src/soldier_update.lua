@@ -161,13 +161,16 @@ local function updateHeadToso(soldier, dt)
     -- =====================================================
     -- CABEZA → MOUSE
     -- =====================================================
-    local headR
-    if win.static then
-        headR = math.atan2(mouseY - head.y, mouseX - head.x)
-    else
-        headR = math.atan2(mouseY - win.h / 2, mouseX - win.w / 2)
+    if soldier.player then
+        local headR
+        if win.static then
+            headR = math.atan2(mouseY - head.y, mouseX - head.x)
+        else
+            headR = math.atan2(mouseY - win.h / 2, mouseX - win.w / 2)
+        end
+
+        head.rx = lerpAngle(head.rx, headR, 12 * dt) 
     end
-    head.rx = lerpAngle(head.rx, headR, 12 * dt)
 
     local differenceR = head.rx - torso.rx
     local limit = rad(35)
