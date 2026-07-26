@@ -1,42 +1,70 @@
 local noneTEX = love.graphics.newImage("textures/none.png")
-local square1 = love.graphics.newImage("textures/def_obj/1x1.png")
+local drawer = {}
 
-local function getLegFrame(hipX, hipY, footX, footY, torsoAngle)
-    -- =========================
-    -- Dirección (para fila)
-    -- =========================
-    local dx = footX - hipX
-    local dy = footY - hipY
+--==-- UTILIDADES --==--
+local lg = love.graphics
+local setColor = lg.setColor
+local rect = lg.rectangle
+drawer.obj_IMGs = {}
 
-    local angle = math.atan2(dy, dx)
-    local rel = angle - torsoAngle
-    rel = (rel + math.pi) % (math.pi * 2) - math.pi
+function drawer.loadObjectImages(imageList)
+    local obj_IMGs = {}
 
-    -- delante / detrás
-    local row = (math.cos(rel) > 0) and 0 or 1
+    for _, name in ipairs(imageList) do
+        local basePath = "textures/def_obj/" .. name .. "/"
 
-    -- =========================
-    -- DISTANCIA (para columna)
-    -- =========================
-    local dist = math.sqrt(dx*dx + dy*dy)
+        local image = love.graphics.newImage(basePath .. "img.png")
+        local particles = love.graphics.newImage(basePath .. "particles.png")
 
-    -- ⚠️ AJUSTA ESTOS VALORES A TU RIG
-    local minLen = 0    -- pierna completamente doblada
-    local maxLen = 90   -- pierna completamente estirada
+        image:setFilter("nearest", "nearest")
+        particles:setFilter("nearest", "nearest")
 
-    -- normalizar 0–1
-    local t = (dist - minLen) / (maxLen - minLen)
-    print(t)
-    t = math.max(0, math.min(1, t))
+        -- Crear los 8 quads de partículas
+        local particles_Quad = {}
+        local frameWidth = particles:getWidth() / 8
+        local frameHeight = particles:getHeight()
 
-    -- invertir si tus sprites van al revés
-    -- (izquierda = estirada, derecha = doblada)
-    local col = math.floor((1 - t) * 5 + 0.5)
+        for i = 0, 7 do
+            particles_Quad[i + 1] = love.graphics.newQuad(
+                i * frameWidth,
+                0,
+                frameWidth,
+                frameHeight,
+                particles:getDimensions()
+            )
+        end
 
-    return col, row
+        -- Cargar info.lua
+        local info = {}
+        local infoPath = basePath .. "info.lua"
+
+        if love.filesystem.getInfo(infoPath) then
+            local chunk, err = love.filesystem.load(infoPath)
+            if not chunk then
+                error("Error cargando '" .. infoPath .. "': " .. err)
+            end
+
+            info = chunk()
+
+            if type(info) ~= "table" then
+                error("'" .. infoPath .. "' debe retornar una tabla.")
+            end
+        end
+
+        obj_IMGs[name] = {
+            image = image,
+            particles = particles,
+            particles_Quad = particles_Quad,
+            width = image:getWidth(),
+            height = image:getHeight(),
+            info = info
+        }
+    end
+
+    return obj_IMGs
 end
 
-return function()
+function drawer.draw()
     local mouseX, mouseY = love.mouse.getPosition()
 
     for _, soldier in ipairs(soldiers) do
@@ -105,15 +133,6 @@ return function()
         local LhandTEX    = textures.LEFThand
         local LwponTEX    = weapon.img[LinHand.img] or noneTEX
 
-        -- pierna derecha
-        local LfolegTex   = textures.LEFTforeleg
-        local LlegTex     = textures.LEFTleg
-        local LfootTex    = textures.LEFTfoot
-
-        -- pierna izquierda
-        local RfolegTex   = textures.RIGHTforeleg
-        local RlegTex     = textures.RIGHTleg
-        local RfootTex    = textures.RIGHTfoot
         local RweaponTEX  = weapon.img
 
         local function drawLeftArm()
@@ -144,94 +163,6 @@ return function()
             love.graphics.draw(RhandTEX[1], Rhand.x, Rhand.y, Rhand.rx, 0.11, 0.11, 64, 128)
         end
 
-        local function drawLeftLeg()
-
-            -- =====================
-            -- PIE IZQUIERDO
-            -- =====================
-            love.graphics.draw(
-                LfootTex,
-                Lfoot.x, Lfoot.y,
-                Lfoot.rx,
-                0.11, 0.11,
-                128, 128
-            )
-
-            -- =====================
-            -- PIERNA IZQUIERDA
-            -- =====================
-            local colL, rowL = getLegFrame(LhipX, LhipY, Lfoot.x, Lfoot.y, torso.rx)
-            local quadLegL = LlegTex.quads[rowL][colL]
-
-            love.graphics.draw(
-                LlegTex.img,
-                quadLegL,
-                Lleg.x, Lleg.y,
-                Lleg.rx + rad(180),
-                0.1, 0.1,
-                128, 16
-            )
-
-            -- =====================
-            -- ANTEPIERNA IZQUIERDA
-            -- =====================
-            local colFL, rowFL = getLegFrame(LhipX, LhipY, Lfoot.x, Lfoot.y, torso.rx)
-            local quadFolegL = LfolegTex.quads[rowFL][colFL]
-
-            love.graphics.draw(
-                LfolegTex.img,
-                quadFolegL,
-                Lfoleg.x, Lfoleg.y,
-                Lfoleg.rx + rad(180),
-                0.1, 0.1,
-                128, 16
-            )
-        end
-
-        local function drawRightLeg()
-
-            -- =====================
-            -- PIE DERECHO
-            -- =====================
-            love.graphics.draw(
-                RfootTex,
-                Rfoot.x, Rfoot.y,
-                Rfoot.rx,
-                0.11, 0.11,
-                128, 128
-            )
-
-            -- =====================
-            -- PIERNA DERECHA
-            -- =====================
-            local colR, rowR = getLegFrame(RhipX, RhipY, Rfoot.x, Rfoot.y, torso.rx)
-            local quadLegR = RlegTex.quads[rowR][colR]
-
-            love.graphics.draw(
-                RlegTex.img,
-                quadLegR,
-                Rleg.x, Rleg.y,
-                Rleg.rx,
-                0.1, 0.1,
-                128, 16
-            )
-
-            -- =====================
-            -- ANTEPIERNA DERECHA
-            -- =====================
-            local colFR, rowFR = getLegFrame(RhipX, RhipY, Rfoot.x, Rfoot.y, torso.rx)
-            local quadFolegR = RfolegTex.quads[rowFR][colFR]
-
-            love.graphics.draw(
-                RfolegTex.img,
-                quadFolegR,
-                Rfoleg.x, Rfoleg.y,
-                Rfoleg.rx,
-                0.1, 0.1,
-                128, 16
-            )
-        end
-
         local function drawTorso()
             -- torso
             love.graphics.draw(torsoTex, torso.x, torso.y, torso.rx, 0.12, 0.12, 256, 256)
@@ -258,9 +189,18 @@ return function()
         local function drawChunk(chunk, pos)
             for i = #chunk, 1, -1 do
                 local obj = chunk[i]
+                local dooi = drawer.obj_IMGs[obj.tex]
 
                 if obj.pos == pos then
-                    love.graphics.draw(square1, obj.x, obj.y, obj.rx, obj.w, obj.h, .5, .5)
+                    if not obj.die then
+                        love.graphics.draw(dooi.image, obj.x, obj.y, obj.rx, .1, .1, dooi.width / 2, dooi.height / 2)
+                    else
+                        obj.destro_t = obj.destro_t + (love.timer.getDelta() * 10)
+                        love.graphics.draw(dooi.particles, dooi.particles_Quad[math.min(math.floor(obj.destro_t), 8)], obj.x, obj.y, obj.rx, .1, .1, dooi.width / 2, dooi.height / 2)
+                    end
+                    setColor(1, 0, 0, 1)
+                    rect("fill", obj.x, obj.y, obj.health / 100 * 50, 4)
+                    setColor(1, 1, 1, 1)
                 end
 
             end
@@ -274,8 +214,10 @@ return function()
         win.x = -head.x + ((win.w / 2) * win.s)
         win.y = -head.y + ((win.h / 2) * win.s)
 
-        love.graphics.scale(1 / win.s)
-        love.graphics.translate(win.x, win.y)
+        if soldier.player then
+            love.graphics.scale(1 / win.s)
+            love.graphics.translate(win.x, win.y)
+        end
 
         -- Debug
         love.graphics.print(math.deg(headR), 1, 1)
@@ -285,29 +227,30 @@ return function()
         love.graphics.circle("line", Rhand.x, Rhand.y, 14)
         love.graphics.setColor(1, 1, 1)
 
-        drawChunk(soldier.actualChunk, "below")
+        if soldier.player then drawChunk(soldier.actualChunk, "below") end
 
-        -- 1. pies y piernas que van detrás
-        -- drawLeftLeg()
-        -- drawRightLeg()
-
-        -- 2. torso siempre al medio
+        -- 1. torso siempre al medio
         drawTorso()
 
-        -- 3. brazos que van al frente
+        -- 2. brazos que van al frente
         drawRightArm()
         drawLeftArm()
 
         drawWeapon()
-        
-        -- 4. cabeza por encima de todo
+
+        -- 3. cabeza por encima de todo
         drawHead()
 
-        drawChunk(soldier.actualChunk, "above")
+        if soldier.player then drawChunk(soldier.actualChunk, "above") end
+        rect("fill", head.x + 50, head.y - 80, soldier.stats.health / 100 * 50, 3) 
+
+        if soldier.player then soldierScripts.shoot.drawDebug() end
 
         -- Debug pivot torso
         love.graphics.setColor(1, 0, 0)
-        love.graphics.rectangle("fill", torso.x, torso.y, 1, 1)
+        rect("fill", torso.x, torso.y, 1, 1)
         love.graphics.setColor(1, 1, 1)
     end
 end
+
+return drawer
