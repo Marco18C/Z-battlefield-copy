@@ -1,3 +1,5 @@
+local soldierTemplate = require("src.soldier_template")
+
 local function lerpAngle(a, b, t)
     local diff = (b - a + math.pi) % (math.pi * 2) - math.pi
     return a + diff * t
@@ -98,11 +100,12 @@ local function updateHeadToso(soldier, dt)
     -- =====================================================
     local function moveWithCollision(soldier, dt)
         local head = soldier.parts.head
+        local torso = soldier.parts.torso
         local objs = soldier.actualChunk
         local speed = soldier.stats.speed
         local ctrl = soldier.controls
 
-        local w, h = head.w, head.h
+        local w, h = torso.w, torso.h
 
         local dx, dy = 0, 0
 
@@ -386,6 +389,65 @@ local function updateControls(soldier, dt)
 
     end
 
+end
+
+-- =================== --
+--  SPAWN DEL SOLDADO  --
+-- =================== --
+local function deepCopy(tbl)
+    if type(tbl) ~= "table" then
+        return tbl
+    end
+
+    local copy = {}
+    for k, v in pairs(tbl) do
+        copy[k] = deepCopy(v)
+    end
+    return copy
+end
+
+local function setValue(tbl, path, value)
+    local t = tbl
+    for i = 1, #path - 1 do
+        t = t[path[i]]
+    end
+    t[path[#path]] = value
+end
+
+function spawnSoldier(cfg)
+    cfg = cfg or {}
+
+    local s = deepCopy(soldierTemplate)
+
+    -- Datos generales
+    s.player = cfg.player or false
+    s.tryer = cfg.tryer or false
+
+    s.stats.speed = cfg.speed or s.stats.speed
+    s.stats.health = cfg.health or s.stats.health
+    s.stats.containment = cfg.containment or s.stats.containment
+
+    -- Posición
+    s.parts.torso.x = cfg.x or s.parts.torso.x
+    s.parts.torso.y = cfg.y or s.parts.torso.y
+
+    -- Dirección
+    s.parts.dir = cfg.dir or s.parts.dir
+
+    -- Arma equipada
+    s.magazine.actual = cfg.weapon or s.magazine.actual
+
+    -- Sobrescribir cualquier propiedad arbitraria
+    if cfg.override then
+        for _,v in ipairs(cfg.override) do
+            setValue(s, v.path, v.value)
+        end
+    end
+
+    s.textures = soldierScripts._texture_pack_.l1
+
+    table.insert(soldiers, s)
+    return s
 end
 
 return function(body, dt)

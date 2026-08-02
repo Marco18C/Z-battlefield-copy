@@ -4,8 +4,8 @@ end
 
 local function resolveTarget(ent, cmd)
 
-    if cmd.part == "dir" then
-        return ent.parts, "dir"
+    if cmd.part == "weapon" then
+        return ent.magazine, cmd.prop
     end
 
     if cmd.part == "hand" then
@@ -32,14 +32,21 @@ local function resolveTarget(ent, cmd)
         end
     end
 
-    -- if cmd.part == "weapon" and cmd.prop ~= "func" then
-    --     if cmd.side == "R" then
-    --         return ent.magazine, cmd.prop
-    --     else
-    --         return ent.parts.LEFTforeleg.leg.foot, cmd.prop
-    --     end
-    -- end
+end
 
+local function findCommand(frame, cmdA)
+    for i = 1, #frame do
+        local cmd = frame[i]
+
+        if type(cmd) == "table"
+        and cmd.part == cmdA.part
+        and cmd.side == cmdA.side
+        and cmd.prop == cmdA.prop then
+            return cmd
+        end
+    end
+
+    return cmdA
 end
 
 return function(ent, dt)
@@ -50,7 +57,7 @@ return function(ent, dt)
 
     local loop = anim.loop ~= false -- default: true
 
-    -- detectar cambio de animación --
+    -- detectar cambio de animacón --
     if ent._lastAnim ~= animName then
         ent._lastAnim = animName
         ent._animFrame = 1
@@ -72,7 +79,7 @@ return function(ent, dt)
             nextIndex = 1
             frameB = anim[nextIndex]
         else
-            frameB = frameA -- 🔥 CLAVE
+            frameB = frameA -- CLAVE y no es peru, no cambiar
         end
     else
         frameB = anim[nextIndex]
@@ -87,7 +94,7 @@ return function(ent, dt)
     for i=1,#frameA do
 
         local cmdA = frameA[i]
-        local cmdB = frameB[i] or cmdA
+        local cmdB = findCommand(frameB, cmdA)
 
         if type(cmdA) == "table" then
                 local target, prop = resolveTarget(ent, cmdA)
@@ -95,7 +102,11 @@ return function(ent, dt)
             if target and prop then
 
                 local a = cmdA.value
-                local b = cmdB.value or a
+                local b = cmdB.value
+
+                if b == nil then
+                    b = a
+                end
 
                 if type(a)=="number" and type(b)=="number" then
                     target[prop] = lerp(a,b,t)

@@ -8,9 +8,6 @@ function w.load()
             return
         end
     end
-
-    unit = soldiers[1]
-
 end
 
 function w.mousepressed(key)
@@ -35,12 +32,12 @@ function w.mousepressed(key)
 
             end
 
-        end
-
-        if key == 4 then
+        elseif key == 4 then
             unit.magazine.actual = "first"
         elseif key == 5 then
             unit.magazine.actual = "second"
+        elseif key == 3 then
+            unit.magazine.actual = "grenade"
         end
 
     end

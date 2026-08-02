@@ -64,6 +64,65 @@ function drawer.loadObjectImages(imageList)
     return obj_IMGs
 end
 
+function drawer.loadSoldierTextures(path)
+    local parts = {
+        head = "head.png",
+        torso = "torso.png",
+
+        RIGHTforearm = "rigthForearm.png",
+        RIGHTarm = "rigthArm.png",
+        RIGHThand = "rightHand.png",
+        RIGHTforeleg = "rigthForeleg.png",
+        RIGHTleg = "rigthLeg.png",
+        RIGHTfoot = "rigthFoot.png",
+
+        LEFTforearm = "leftForearm.png",
+        LEFTarm = "leftArm.png",
+        LEFThand = "leftHand.png",
+        LEFTforeleg = "leftForeleg.png",
+        LEFTleg = "leftLeg.png",
+        LEFTfoot = "leftFoot.png",
+    }
+
+    local result = {}
+
+    -- Partes que deben tener img + quads
+    local animated = {
+        RIGHThand = true,
+        LEFThand = true,
+        RIGHTforeleg = true,
+        RIGHTleg = true,
+        LEFTforeleg = true,
+        LEFTleg = true,
+    }
+
+    for name, file in pairs(parts) do
+        local img = love.graphics.newImage("textures/soldiers/" .. path .. "/base/" .. file)
+
+        if animated[name] then
+            result[name] = {
+                img = img,
+                quads = {}
+            }
+
+            local w = img:getWidth()
+            local h = img:getHeight() / 4
+
+            for i = 0, 3 do
+                result[name].quads[i + 1] = love.graphics.newQuad(
+                    0, i * h,
+                    w, h,
+                    img:getDimensions()
+                )
+            end
+        else
+            result[name] = img
+        end
+    end
+
+    return result
+end
+
 function drawer.draw()
     local mouseX, mouseY = love.mouse.getPosition()
 
@@ -125,15 +184,15 @@ function drawer.draw()
         local RroarTex    = textures.RIGHTforearm
         local RgarmTex    = textures.RIGHTarm
         local RhandTEX    = textures.RIGHThand
-        local RwponTEX    = weapon.img[RinHand.img] or noneTEX
+        local RwponTEX    = weapon.parts[RinHand.img] or noneTEX
 
         -- mano izquierda
         local LroarTex    = textures.LEFTforearm
         local LgarmTex    = textures.LEFTarm
         local LhandTEX    = textures.LEFThand
-        local LwponTEX    = weapon.img[LinHand.img] or noneTEX
+        local LwponTEX    = weapon.parts[LinHand.img] or noneTEX
 
-        local RweaponTEX  = weapon.img
+        local RweaponTEX  = weapon.parts
 
         local function drawLeftArm()
             -- antebrazo izquierdo
@@ -141,12 +200,14 @@ function drawer.draw()
 
             -- brazo izquierdo
             love.graphics.draw(LgarmTex, Larm.x, Larm.y, Larm.rx, 0.1, 0.1, 0, 128)
+        end
 
+        local function drawLeftHand()
             -- objeto izquierda
             love.graphics.draw(LwponTEX, Lhand.x, Lhand.y, Lhand.rx + LinHand.rx, LinHand.sx, LinHand.sy, LinHand.ox, LinHand.oy)
 
             -- mano izquierda
-            love.graphics.draw(LhandTEX[1], Lhand.x, Lhand.y, Lhand.rx, 0.11, 0.11, 64, 128)
+            love.graphics.draw(LhandTEX.img, LhandTEX.quads[math.min(4, math.max(math.ceil(Lhand.ry), 1))], Lhand.x, Lhand.y, Lhand.rx, 0.11, 0.11, 64, 128)
         end
 
         local function drawRightArm()
@@ -155,12 +216,14 @@ function drawer.draw()
 
             -- brazo derecho
             love.graphics.draw(RgarmTex, Rarm.x, Rarm.y, Rarm.rx, 0.1, 0.1, 0, 128)
+        end
 
+        local function drawRightHand()
             -- objeto derecha
             love.graphics.draw(RwponTEX, Rhand.x, Rhand.y, Rhand.rx + RinHand.rx, RinHand.sx, RinHand.sy, RinHand.ox, RinHand.oy)
 
             -- mano derecha
-            love.graphics.draw(RhandTEX[1], Rhand.x, Rhand.y, Rhand.rx, 0.11, 0.11, 64, 128)
+            love.graphics.draw(RhandTEX.img, RhandTEX.quads[math.min(4, math.max(math.ceil(Rhand.ry), 1))], Rhand.x, Rhand.y, Rhand.rx, 0.11, 0.11, 64, 128)
         end
 
         local function drawTorso()
@@ -175,15 +238,39 @@ function drawer.draw()
         end
 
         local function drawWeapon()
-            -- arma en mano derecha
+            local wx = Rhand.x
+            local wy = Rhand.y
+            local wr = Rhand.rx
+
+            -- arma
             love.graphics.draw(
                 RweaponTEX.base,
-                Rhand.x, Rhand.y,
-                Rhand.rx,
+                wx, wy,
+                wr,
                 weapon.size, weapon.size,
                 weapon.offsetX, weapon.offsetY
             )
 
+            local c = math.cos(wr)
+            local s = math.sin(wr)
+
+            for _, part in ipairs(weapon.parts.pts) do
+                local pti = part.info
+
+                -- Offset
+                local rx = pti.offX * c - pti.offY * s
+                local ry = pti.offX * s + pti.offY * c
+                local rs = pti.offS
+
+                love.graphics.draw(
+                    part.img,
+                    wx + rx,
+                    wy + ry,
+                    wr,
+                    rs, rs,
+                    weapon.offsetX, weapon.offsetY
+                )
+            end
         end
 
         local function drawChunk(chunk, pos)
@@ -200,6 +287,7 @@ function drawer.draw()
                     end
                     setColor(1, 0, 0, 1)
                     rect("fill", obj.x, obj.y, obj.health / 100 * 50, 4)
+                    love.graphics.print(obj.health, obj.x, obj.y - 30)
                     setColor(1, 1, 1, 1)
                 end
 
@@ -214,13 +302,15 @@ function drawer.draw()
         win.x = -head.x + ((win.w / 2) * win.s)
         win.y = -head.y + ((win.h / 2) * win.s)
 
+        -- Debug
+        love.graphics.print(math.deg(headR), 1, 1)
+
         if soldier.player then
             love.graphics.scale(1 / win.s)
             love.graphics.translate(win.x, win.y)
         end
 
         -- Debug
-        love.graphics.print(math.deg(headR), 1, 1)
         love.graphics.setLineWidth(3)
         love.graphics.setColor(1, 0, 0)
         love.graphics.circle("line", Lhand.x, Lhand.y, 14)
@@ -228,6 +318,7 @@ function drawer.draw()
         love.graphics.setColor(1, 1, 1)
 
         if soldier.player then drawChunk(soldier.actualChunk, "below") end
+        soldierScripts.propz.draw()
 
         -- 1. torso siempre al medio
         drawTorso()
@@ -236,7 +327,14 @@ function drawer.draw()
         drawRightArm()
         drawLeftArm()
 
+        -- 4. manos entrelazadas
+        if not Rhand.handSteps then drawRightHand() end
+        if not Lhand.handSteps then drawLeftHand() end
+
         drawWeapon()
+
+        if Rhand.handSteps then drawRightHand() end
+        if Lhand.handSteps then drawLeftHand() end
 
         -- 3. cabeza por encima de todo
         drawHead()
