@@ -184,15 +184,15 @@ function drawer.draw()
         local RroarTex    = textures.RIGHTforearm
         local RgarmTex    = textures.RIGHTarm
         local RhandTEX    = textures.RIGHThand
-        local RwponTEX    = weapon.parts[RinHand.img] or noneTEX
+        local RwponTEX    = weapon and weapon.parts[RinHand.img] or noneTEX
 
         -- mano izquierda
         local LroarTex    = textures.LEFTforearm
         local LgarmTex    = textures.LEFTarm
         local LhandTEX    = textures.LEFThand
-        local LwponTEX    = weapon.parts[LinHand.img] or noneTEX
+        local LwponTEX    = weapon and weapon.parts[LinHand.img] or noneTEX
 
-        local RweaponTEX  = weapon.parts
+        local RweaponTEX  = weapon and weapon.parts
 
         local function drawLeftArm()
             -- antebrazo izquierdo
@@ -238,6 +238,7 @@ function drawer.draw()
         end
 
         local function drawWeapon()
+            if not weapon or not RweaponTEX or not RweaponTEX.base then return end
             local wx = Rhand.x
             local wy = Rhand.y
             local wr = Rhand.rx
@@ -254,7 +255,7 @@ function drawer.draw()
             local c = math.cos(wr)
             local s = math.sin(wr)
 
-            for _, part in ipairs(weapon.parts.pts) do
+            for _, part in ipairs(weapon.parts.pts or {}) do
                 local pti = part.info
 
                 -- Offset
@@ -318,6 +319,7 @@ function drawer.draw()
         love.graphics.setColor(1, 1, 1)
 
         if soldier.player then drawChunk(soldier.actualChunk, "below") end
+        if soldier.player then soldierScripts.weapons.draw() end
         soldierScripts.propz.draw()
 
         -- 1. torso siempre al medio

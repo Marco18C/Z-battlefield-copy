@@ -87,6 +87,8 @@ function love.keypressed(key)
     if key == "f3" then
         soldierScripts.shoot.toggleDebug()
     end
+
+    soldierScripts.weapons.keypressed(key)
 end
 
 function love.mousepressed(x, y, key)
@@ -114,5 +116,4 @@ end
 
 function love.draw()
     soldierScripts.draw.draw()
-    -- worldScripts.terrain(soldiers)
 end

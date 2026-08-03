@@ -52,7 +52,9 @@ end
 return function(ent, dt)
 
     local animName = ent.anims.actual
-    local anim = ent.magazine[ent.magazine.actual].anims[animName]
+    local weapon = ent.magazine[ent.magazine.actual]
+    if not weapon then return end
+    local anim = weapon.anims and weapon.anims[animName]
     if not anim then return end
 
     local loop = anim.loop ~= false -- default: true
