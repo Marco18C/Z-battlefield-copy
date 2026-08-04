@@ -105,7 +105,7 @@ local function updateHeadToso(soldier, dt)
         local speed = soldier.stats.speed
         local ctrl = soldier.controls
 
-        local w, h = torso.w, torso.h
+        local w, h = torso.w * 2, torso.h * 2
 
         local dx, dy = 0, 0
 

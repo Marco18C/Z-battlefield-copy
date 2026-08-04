@@ -1,5 +1,5 @@
 return {
-    offsetX=250,offsetY=300,damage=10,    -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
+    offsetX=250,offsetY=300,damage=95,    -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
     HandOffX=610,HandOffY=0,size=.12,     -- =0≡= cambiar ubicación intena del arma =≡0= --
     mode="semi",  -- auto - burst - semi  -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
     shootOffsetX=0,shootOffsetY=0,shootMaxDistance=2200,shootSpread=rad(.5),objectDamagePercent=0.1, -- =0≡= config. raycast de disparo =≡0= --
@@ -653,6 +653,7 @@ return {
                         soldierScripts.propz.shoot(ent.parts.RIGHTforearm.arm.hand.x,
                                                 ent.parts.RIGHTforearm.arm.hand.y,
                                                 ent.parts.RIGHTforearm.arm.hand.rx + rad(55), {
+                            owner = ent,
                             speed = 750,
                             accel = -1800,            -- aceleración en dirección del movimiento
                             w = 6, h = 6, s = .025,   -- tamaño de colisión del proyectil

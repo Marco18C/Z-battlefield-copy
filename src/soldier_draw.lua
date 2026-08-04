@@ -307,6 +307,7 @@ function drawer.draw()
 
         -- Debug
         love.graphics.print(math.deg(headR), 1, 1)
+        love.graphics.print(love.timer.getFPS(), 1, 12)
 
         if soldier.player then
             love.graphics.scale(1 / win.s)

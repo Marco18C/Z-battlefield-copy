@@ -21,8 +21,10 @@ local function resolveRotatedCollision(px, py, w, h, obj)
     local dx = px - ox
     local dy = py - oy
 
-    local localX =  dx * obj.cos + dy * obj.sin
-    local localY = -dx * obj.sin + dy * obj.cos
+    local cosR = obj.cos or math.cos(obj.rx or 0)
+    local sinR = obj.sin or math.sin(obj.rx or 0)
+    local localX =  dx * cosR + dy * sinR
+    local localY = -dx * sinR + dy * cosR
 
     local halfW = obj.w/2
     local halfH = obj.h/2
@@ -50,12 +52,12 @@ local function resolveRotatedCollision(px, py, w, h, obj)
         end
     end
 
-    local worldX = ox + (localX * obj.cos - localY * obj.sin)
-    local worldY = oy + (localX * obj.sin + localY * obj.cos)
+    local worldX = ox + (localX * cosR - localY * sinR)
+    local worldY = oy + (localX * sinR + localY * cosR)
 
     -- normal transformada a espacio mundo (para el rebote)
-    local worldNX = nx * obj.cos - ny * obj.sin
-    local worldNY = nx * obj.sin + ny * obj.cos
+    local worldNX = nx * cosR - ny * sinR
+    local worldNY = nx * sinR + ny * cosR
 
     return worldX, worldY, worldNX, worldNY
 end
@@ -75,8 +77,10 @@ local function checkCollision(cx, cy, w, h, obj)
     local dx = px - ox
     local dy = py - oy
 
-    local localX =  dx * obj.cos + dy * obj.sin
-    local localY = -dx * obj.sin + dy * obj.cos
+    local cosR = obj.cos or math.cos(obj.rx or 0)
+    local sinR = obj.sin or math.sin(obj.rx or 0)
+    local localX =  dx * cosR + dy * sinR
+    local localY = -dx * sinR + dy * cosR
 
     return math.abs(localX) <= (obj.w/2 + hw) and
            math.abs(localY) <= (obj.h/2 + hh)
@@ -85,6 +89,24 @@ end
 -- ==========================================================
 -- BÚSQUEDA DE OBJETOS EN CHUNKS CERCANOS
 -- ==========================================================
+local function getNearbySoldiers()
+    return soldiers or {}
+end
+
+local function getSoldierBox(soldier)
+    return soldier.parts.torso
+end
+
+local function applyTargetDamage(target, amount)
+    if target._projectileSoldier then
+        local stats = target.owner.stats
+        stats.health = math.max(stats.health - amount, 0)
+        if stats.health < 1 then target.owner.die = true end
+    else
+        prop.applyDamage(target, amount)
+    end
+end
+
 local function getChunkObjects(cx, cy)
     local col = gen.level.chunks[cy]
     if not col then return nil end
@@ -148,7 +170,16 @@ function prop.damageInRadius(x, y, radius, damage, ignoreObj)
             local dy = obj.y - y
             local dist = math.sqrt(dx*dx + dy*dy)
             if dist <= radius then
-                prop.applyDamage(obj, damage)
+                applyTargetDamage(obj, damage)
+            end
+        end
+    end
+    for _, soldier in ipairs(getNearbySoldiers()) do
+        local torso = getSoldierBox(soldier)
+        if soldier ~= ignoreObj and not soldier.die then
+            local dx, dy = torso.x - x, torso.y - y
+            if math.sqrt(dx*dx + dy*dy) <= radius then
+                applyTargetDamage({_projectileSoldier = true, owner = soldier}, damage)
             end
         end
     end
@@ -211,6 +242,7 @@ function prop.shoot(x, y, angle, opts)
         onHitFunc = opts.onHitFunc,
 
         lastHit = nil,
+        owner = opts.owner,
     }
 
     table.insert(prop.projectiles, proj)
@@ -231,9 +263,9 @@ end
 function prop.resolveHit(p, obj)
     if p.onHit == "damage" then
         if p.damageRadius and p.damageRadius > 0 then
-            prop.damageInRadius(p.x, p.y, p.damageRadius, p.damage)
+            prop.damageInRadius(p.x, p.y, p.damageRadius, p.damage, p.owner)
         else
-            prop.applyDamage(obj, p.damage)
+            applyTargetDamage(obj, p.damage)
         end
         return not p.piercing
 
@@ -247,7 +279,7 @@ function prop.resolveHit(p, obj)
         p.vy = (p.vy - 2 * dot * ny) * p.bounceRestitution
         p.angle = math.atan2 and math.atan2(p.vy, p.vx) or p.angle
 
-        prop.applyDamage(obj, p.bounceDamage)
+        applyTargetDamage(obj, p.bounceDamage)
 
         p.bounces = p.bounces + 1
         p.lastHit = obj
@@ -295,6 +327,19 @@ function prop.update(dt)
                 if not obj.die and obj ~= p.lastHit and checkCollision(p.x, p.y, p.w, p.h, obj) then
                     destroy = prop.resolveHit(p, obj)
                     break
+                end
+            end
+
+            if not destroy then
+                for _, soldier in ipairs(getNearbySoldiers()) do
+                    local torso = getSoldierBox(soldier)
+                    local target = {_projectileSoldier = true, owner = soldier,
+                        x = torso.x, y = torso.y, w = torso.w, h = torso.h, rx = torso.rx or 0}
+                    if soldier ~= p.owner and not soldier.die and soldier ~= p.lastHit
+                        and checkCollision(p.x, p.y, p.w, p.h, target) then
+                        destroy = prop.resolveHit(p, target)
+                        break
+                    end
                 end
             end
         end
