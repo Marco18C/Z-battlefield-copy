@@ -106,9 +106,9 @@ function drawer.loadSoldierTextures(path)
             }
 
             local w = img:getWidth()
-            local h = img:getHeight() / 4
+            local h = img:getHeight() / 5
 
-            for i = 0, 3 do
+            for i = 0, 4 do
                 result[name].quads[i + 1] = love.graphics.newQuad(
                     0, i * h,
                     w, h,
@@ -163,6 +163,8 @@ function drawer.draw()
 
         local weapon    = soldier.magazine[soldier.magazine.actual]
 
+        local weaponTextures = weapon and soldierScripts.weapons.textures[weapon.texture] or {}
+
         local LshouldX = torso.x + torso.shouldL.x
         local LshouldY = torso.y + torso.shouldL.y
 
@@ -184,15 +186,15 @@ function drawer.draw()
         local RroarTex    = textures.RIGHTforearm
         local RgarmTex    = textures.RIGHTarm
         local RhandTEX    = textures.RIGHThand
-        local RwponTEX    = weapon and weapon.parts[RinHand.img] or noneTEX
+        local RwponTEX    = weaponTextures[RinHand.img] or noneTEX
 
         -- mano izquierda
         local LroarTex    = textures.LEFTforearm
         local LgarmTex    = textures.LEFTarm
         local LhandTEX    = textures.LEFThand
-        local LwponTEX    = weapon and weapon.parts[LinHand.img] or noneTEX
+        local LwponTEX    = weaponTextures[LinHand.img] or noneTEX
 
-        local RweaponTEX  = weapon and weapon.parts
+        local RweaponTEX  = weaponTextures
 
         local function drawLeftArm()
             -- antebrazo izquierdo
@@ -207,7 +209,7 @@ function drawer.draw()
             love.graphics.draw(LwponTEX, Lhand.x, Lhand.y, Lhand.rx + LinHand.rx, LinHand.sx, LinHand.sy, LinHand.ox, LinHand.oy)
 
             -- mano izquierda
-            love.graphics.draw(LhandTEX.img, LhandTEX.quads[math.min(4, math.max(math.ceil(Lhand.ry), 1))], Lhand.x, Lhand.y, Lhand.rx, 0.11, 0.11, 64, 128)
+            love.graphics.draw(LhandTEX.img, LhandTEX.quads[math.min(5, math.max(math.ceil(Lhand.ry), 1))], Lhand.x, Lhand.y, Lhand.rx, 0.11, 0.11, 64, 128)
         end
 
         local function drawRightArm()
@@ -223,7 +225,7 @@ function drawer.draw()
             love.graphics.draw(RwponTEX, Rhand.x, Rhand.y, Rhand.rx + RinHand.rx, RinHand.sx, RinHand.sy, RinHand.ox, RinHand.oy)
 
             -- mano derecha
-            love.graphics.draw(RhandTEX.img, RhandTEX.quads[math.min(4, math.max(math.ceil(Rhand.ry), 1))], Rhand.x, Rhand.y, Rhand.rx, 0.11, 0.11, 64, 128)
+            love.graphics.draw(RhandTEX.img, RhandTEX.quads[math.min(5, math.max(math.ceil(Rhand.ry), 1))], Rhand.x, Rhand.y, Rhand.rx, 0.11, 0.11, 64, 128)
         end
 
         local function drawTorso()
@@ -255,22 +257,22 @@ function drawer.draw()
             local c = math.cos(wr)
             local s = math.sin(wr)
 
-            for _, part in ipairs(weapon.parts.pts or {}) do
+            for i, part in ipairs(weapon.parts.pts or {}) do
                 local pti = part.info
-
-                -- Offset
                 local rx = pti.offX * c - pti.offY * s
                 local ry = pti.offX * s + pti.offY * c
                 local rs = pti.offS
 
-                love.graphics.draw(
-                    part.img,
-                    wx + rx,
-                    wy + ry,
-                    wr,
-                    rs, rs,
-                    weapon.offsetX, weapon.offsetY
-                )
+                if RweaponTEX.pts[i] then
+                    love.graphics.draw(
+                        RweaponTEX.pts[i],
+                        wx + rx,
+                        wy + ry,
+                        wr,
+                        rs, rs,
+                        weapon.offsetX, weapon.offsetY
+                    )
+                end
             end
         end
 

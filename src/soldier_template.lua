@@ -25,20 +25,16 @@ return {
                     HandOffX=610,HandOffY=0,size=.08,     -- =0≡= cambiar ubicación intena del arma =≡0= --
                     mode="auto",  -- auto - burst - semi  -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
                     shootOffsetX=50,shootOffsetY=0,shootMaxDistance=2200,shootSpread=rad(1.5),objectDamagePercent=0.1, -- =0≡= config. raycast de disparo =≡0= --
-                    pos="first", -- first - second
-                    fireRate=.05,fireTime=0,
+                    texture="guns/test_rifle", pos="first", -- first - second
+                    fireRate=.05,fireTime=0, prepared = true,
                     func=function(weapon)end,
                     parts={
-                        base=love.graphics.newImage("mod/testing/weapons/guns/test_rifle/base.png"),
-                        ammo=love.graphics.newImage("mod/testing/weapons/guns/test_rifle/ammo.png"),
                         pts = {
                             [1] = {
-                                img = love.graphics.newImage("mod/testing/weapons/guns/test_rifle/part_1.png"),
                                 info = {offX = 20, offY = -28, offS = .025}
                             },
                             [2] = {
-                                img = love.graphics.newImage("mod/testing/weapons/guns/test_rifle/part_2.png"),
-                                info = {offX = 19, offY = 18.5, offS = .04}
+                                info = {offX = 18, offY = 18.5, offS = .08}
                             },
                         },
                     },
@@ -69,11 +65,11 @@ return {
                                 {part = "hand", side = "L", prop = "ly", value = 74},
                                 {part = "hand", side = "R", prop = "ly", value = 69},
 
-                                {part = "hand", side = "L", prop = "handSteps", value = false},
+                                {part = "hand", side = "L", prop = "handSteps", value = true},
                                 {part = "hand", side = "R", prop = "handSteps", value = false},
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
-                                    weapon.parts.pts[2].info.offS = 0
+                                    weapon.parts.pts[2].info.offS = .04
                                 end, value = 0},
 
                                 {part = "inHand", side = "L", prop = "img", value = "ammo"},
@@ -96,19 +92,23 @@ return {
                                 {part = "hand", side = "R", prop = "handSteps", value = false},
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
-                                    weapon.bullets = math.max(0, weapon.bullets - 1)
+                                    if weapon.prepared then
+                                        weapon.bullets = math.max(0, weapon.bullets - 1)
 
-                                    soldierScripts.shoot.fire(ent, weapon, {
-                                        offsetX             = weapon.shootOffsetX,
-                                        offsetY             = weapon.shootOffsetY,
-                                        rotation            = (math.random() * 2 - 1) * (weapon.shootSpread or 0),
-                                        maxDistance         = weapon.shootMaxDistance,
-                                        damage              = weapon.damage,
-                                        objectDamagePercent = weapon.objectDamagePercent,
-                                    })
+                                        soldierScripts.shoot.fire(ent, weapon, {
+                                            offsetX             = weapon.shootOffsetX,
+                                            offsetY             = weapon.shootOffsetY,
+                                            rotation            = (math.random() * 2 - 1) * (weapon.shootSpread or 0),
+                                            maxDistance         = weapon.shootMaxDistance,
+                                            damage              = weapon.damage,
+                                            objectDamagePercent = weapon.objectDamagePercent,
+                                        })
 
-                                    weapon.parts.pts[2].info.offS = 0
-                                    weapon.parts.pts[1].info.offX = 10
+                                        weapon.parts.pts[2].info.offS = 0
+                                        weapon.parts.pts[1].info.offX = 10
+                                    else
+                                        ent.anims.actual = "prepairing"
+                                    end
                                 end, value = 0},
                             },
                             [2] = {
@@ -170,6 +170,7 @@ return {
 
                                         onHitFunc = function(proyectil, objeto) return true end,
                                     })
+                                    weapon.prepared = false
                                     weapon.parts.pts[1].info.offX = 10
                                 end, value = 0},
                             },
@@ -216,6 +217,13 @@ return {
 
                                 {part = "hand", side = "L", prop = "ry", value = 1},
                                 {part = "hand", side = "R", prop = "ry", value = 3},
+
+                                {part = "weapon", side = "func", prop=function(weapon, ent)
+                                    weapon.prepared = false
+                                    weapon.parts.pts[2].info.offS = .04
+                                    weapon.bullets = weapon.maxBullets
+                                    ent.anims.actual = "prepairing"
+                                end, value = 0},
                             },
                             [6] = {
                                 time = .05,
@@ -227,14 +235,12 @@ return {
 
                                 {part = "hand", side = "L", prop = "ry", value = 1},
                                 {part = "hand", side = "R", prop = "ry", value = 3},
-
-                                {part = "weapon", side = "func", prop=function(weapon)
-                                    weapon.parts.pts[2].info.offS = .04
-                                    weapon.bullets = weapon.maxBullets
-                                end, value = 0},
                             },
-                            [7] = {
-                                time = .2,
+                        },
+                        prepairing = {
+                            loop = false,
+                            [1] = {
+                                time = .1,
                                 {part = "hand", side = "L", prop = "ly", value = 74},
                                 {part = "hand", side = "R", prop = "ly", value = 69},
 
@@ -247,9 +253,13 @@ return {
                                 {part = "hand", side = "L", prop = "handSteps", value = true},
 
                                 {part = "inHand", side = "L", prop = "img", value = "none"},
+
+                                {part = "weapon", side = "func", prop = function(weapon, ent)
+                                    weapon.prepared = false
+                                end, value = 0},
                             },
-                            [8] = {
-                                time = .5,
+                            [2] = {
+                                time = .25,
                                 {part = "hand", side = "L", prop = "ly", value = 79},
                                 {part = "hand", side = "R", prop = "ly", value = 69},
 
@@ -260,21 +270,21 @@ return {
                                 {part = "hand", side = "R", prop = "ry", value = 3},
 
                                 {part = "hand", side = "L", prop = "ry", value = 1},
-                            },
-                            [9] = {
-                                time = .4,
-                                {part = "hand", side = "L", prop = "ly", value = 74},
-                                {part = "hand", side = "R", prop = "ly", value = 69},
-
-                                {part = "hand", side = "L", prop = "ro", value = rad(-20)},
-                                {part = "hand", side = "R", prop = "ro", value = 0},
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
                                     weapon.parts.pts[1].info.offX = 7
                                 end, value = 0},
                             },
-                            [10] = {
-                                time = .1,
+                            [3] = {
+                                time = .2,
+                                {part = "hand", side = "L", prop = "ly", value = 74},
+                                {part = "hand", side = "R", prop = "ly", value = 69},
+
+                                {part = "hand", side = "L", prop = "ro", value = rad(-20)},
+                                {part = "hand", side = "R", prop = "ro", value = 0},
+                            },
+                            [4] = {
+                                time = .05,
                                 {part = "hand", side = "L", prop = "ly", value = 74},
                                 {part = "hand", side = "R", prop = "ly", value = 69},
 
@@ -285,10 +295,11 @@ return {
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
                                     weapon.parts.pts[1].info.offX = 20
+                                    weapon.prepared = true
                                 end, value = 0},
                             },
-                            [11] = {
-                                time = .05,
+                            [5] = {
+                                time = .025,
                                 {part = "hand", side = "L", prop = "ly", value = 74},
                                 {part = "hand", side = "R", prop = "ly", value = 69},
 
@@ -312,14 +323,12 @@ return {
                     HandOffX=20,HandOffY=0,size=.035,
                     shootOffsetX=40,shootOffsetY=0,shootMaxDistance=1400,shootSpread=rad(0.5),objectDamagePercent=0.3,
                     mode="semi", -- auto - burst - semi
+                    texture="guns/test_pistol",
                     pos="second", -- first - second
-                    fireRate=.5,fireTime=0,
+                    fireRate=.5,fireTime=0,prepared = true,
                     parts={
-                        base=love.graphics.newImage("mod/testing/weapons/guns/test_pistol/base.png"),
-                        ammo=love.graphics.newImage("mod/testing/weapons/guns/test_pistol/ammo.png"),
                         pts = {
                             [1] = {
-                                img = love.graphics.newImage("mod/testing/weapons/guns/test_pistol/part_1.png"),
                                 info = {offX = 0, offY = 0, offS = .035}
                             },
                         },
@@ -398,6 +407,7 @@ return {
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
                                     weapon.parts.pts[1].info.offX = -10
+                                    weapon.prepared = false
                                 end, value = 0},
 
                                 {part = "hand", side = "L", prop = "handSteps", value = false},
@@ -444,6 +454,11 @@ return {
                                 {part = "hand", side = "L", prop = "handSteps", value = true},
 
                                 {part = "inHand", side = "L", prop = "img", value = "none"},
+
+                                {part = "weapon", side = "func", prop = function(weapon, ent)
+                                    ent.anims.actual = "prepairing"
+                                    weapon.prepared = false
+                                end, value = 0},
                             },
                             [6] = {
                                 time = .3,
@@ -453,7 +468,10 @@ return {
                                 {part = "hand", side = "L", prop = "ro", value = rad(15)},
                                 {part = "hand", side = "R", prop = "ro", value = 0},
                             },
-                            [7] = {
+                        },
+                        prepairing = {
+                            loop = false,
+                            [1] = {
                                 time = .1,
                                 {part = "hand", side = "L", prop = "ly", value = 79},
                                 {part = "hand", side = "R", prop = "ly", value = 79},
@@ -463,11 +481,15 @@ return {
 
                                 {part = "hand", side = "L", prop = "ry", value = 4},
 
+                                {part = "hand", side = "L", prop = "handSteps", value = true},
+                                {part = "hand", side = "R", prop = "handSteps", value = false},
+
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
                                     weapon.parts.pts[1].info.offX = -15
+                                    weapon.prepared = false
                                 end, value = 0},
                             },
-                            [8] = {
+                            [2] = {
                                 time = .5,
                                 {part = "hand", side = "L", prop = "ly", value = 69},
                                 {part = "hand", side = "R", prop = "ly", value = 79},
@@ -481,7 +503,7 @@ return {
                                     weapon.parts.pts[1].info.offX = -20
                                 end, value = 0},
                             },
-                            [9] = {
+                            [3] = {
                                 time = .05,
                                 {part = "hand", side = "L", prop = "ly", value = 61},
                                 {part = "hand", side = "R", prop = "ly", value = 79},
@@ -491,7 +513,7 @@ return {
 
                                 {part = "hand", side = "L", prop = "ry", value = 4},
                             },
-                            [10] = {
+                            [4] = {
                                 time = .05,
                                 {part = "hand", side = "L", prop = "ly", value = 79},
                                 {part = "hand", side = "R", prop = "ly", value = 79},
@@ -503,6 +525,7 @@ return {
 
                                 {part = "weapon", side = "func", prop = function(weapon, ent)
                                     weapon.parts.pts[1].info.offX = 0
+                                    weapon.prepared = true
                                 end, value = 0},
                             },
                         },
@@ -513,12 +536,11 @@ return {
                     HandOffX=610,HandOffY=0,size=.08,     -- =0≡= cambiar ubicación intena del arma =≡0= --
                     mode="semi",  -- auto - burst - semi  -- =O=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=≡=O= --
                     shootOffsetX=50,shootOffsetY=0,shootMaxDistance=2200,shootSpread=rad(1.5),objectDamagePercent=1, -- =0≡= config. raycast de disparo =≡0= --
+                    texture="throwable/grenade",
                     pos="grenade", -- first - second
                     fireRate=.05,fireTime=0,
                     func=function(weapon)end,
                     parts={
-                        base=love.graphics.newImage("textures/none.png"),
-                        ammo=love.graphics.newImage("mod/testing/weapons/throwable/grenade.png"),
                         pts = {},
                     },
                     props = {

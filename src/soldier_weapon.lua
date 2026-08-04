@@ -29,11 +29,54 @@ local unit
 -- }
 w.objs = {}
 
+-- Texturas cargadas para las armas. Las armas solo guardan el nombre del
+-- conjunto (`weapon.texture`), no objetos Image.
+w.textures = {}
+
 -- Distancia máxima a la que se puede recoger un arma.
 local PICKUP_DISTANCE = 75
 
 -- Ranuras que puede utilizar un soldado.
 local WEAPON_SLOTS = {"first", "second"}
+
+---------------------------------------------------------------------
+-- Carga de texturas
+---------------------------------------------------------------------
+
+-- names contiene rutas relativas a mod/<mod>/weapons/.
+-- Ejemplo: w.loadTextures("testing", {"guns/test_rifle"})
+function w.loadTextures(mod, names)
+    w.textures = {}
+
+    for _, name in ipairs(names or {}) do
+        local basePath = "mod/" .. mod .. "/weapons/" .. name .. "/"
+        local textures = {}
+
+        local function loadImage(file)
+            local path = basePath .. file
+            local ok, image = pcall(love.graphics.newImage, path)
+            if ok then
+                return image
+            end
+        end
+
+        textures.base = loadImage("base.png")
+        textures.ammo = loadImage("ammo.png")
+        textures.pts = {}
+
+        local partIndex = 1
+        while true do
+            local image = loadImage("part_" .. partIndex .. ".png")
+            if not image then break end
+            textures.pts[partIndex] = image
+            partIndex = partIndex + 1
+        end
+
+        w.textures[name] = textures
+    end
+
+    return w.textures
+end
 
 ---------------------------------------------------------------------
 -- Utilidades
@@ -55,6 +98,16 @@ local function addGroundWeapon(weapon, slot, x, y, rx)
     })
 end
 
+-- Coloca un arma directamente en el suelo.
+-- `weapon` es una tabla de arma (por ejemplo, la retornada por
+-- src.TEST_DEBUG_RIFLE_src.lua). Devuelve el objeto creado en w.objs.
+function w.spawnGroundWeapon(weapon, x, y, rx, slot)
+    assert(type(weapon) == "table", "spawnGroundWeapon necesita una tabla de arma")
+    assert(type(x) == "number" and type(y) == "number", "La posición del arma debe ser numérica")
+
+    addGroundWeapon(weapon, slot or weapon.pos, x, y, rx)
+    return w.objs[#w.objs]
+end
 local function removeGroundWeapon(object)
     for index = #w.objs, 1, -1 do
         if w.objs[index] == object then
@@ -206,23 +259,30 @@ function w.mousepressed(key)
         end
 
         if weapon.bullets > 0 and unit.anims.actual ~= "shooting" then
-            if weapon.mode == "auto" then
-                weapon.autoFire = true
-            elseif weapon.mode == "semi" then
-                unit.anims.actual = "shooting"
+            if weapon.prepared then
+                if weapon.mode == "auto" then
+                    weapon.autoFire = true
+                elseif weapon.mode == "semi" then
+                    unit.anims.actual = "shooting"
+                end
+            elseif unit.anims.actual ~= "prepairing" then
+                unit.anims.actual = "prepairing"
             end
-        else
+        elseif unit.anims.actual == "idle" then
             unit.anims.actual = "reload"
         end
 
     elseif key == 4 then
         unit.magazine.actual = "first"
+        unit.anims.actual = "prepairing"
 
     elseif key == 5 then
         unit.magazine.actual = "second"
+        unit.anims.actual = "prepairing"
 
     elseif key == 3 then
         unit.magazine.actual = "grenade"
+        unit.anims.actual = "prepairing"
     end
 end
 
@@ -270,8 +330,9 @@ local function drawGroundWeapon(object)
     local weapon = object.weapon
     local parts = weapon.parts or {}
 
+    local textures = w.textures[weapon.texture] or {}
     -- Las granadas utilizan la textura ammo; las armas de fuego usan base.
-    local image = weapon.pos == "grenade" and parts.ammo or parts.base
+    local image = weapon.pos == "grenade" and textures.ammo or textures.base
 
     if not image then
         return
@@ -297,21 +358,23 @@ local function drawGroundWeapon(object)
     local cosRotation = math.cos(rotation)
     local sinRotation = math.sin(rotation)
 
-    for _, part in ipairs(parts.pts) do
+    for index, part in ipairs(parts.pts) do
         local info = part.info
         local offsetX = info.offX * cosRotation - info.offY * sinRotation
         local offsetY = info.offX * sinRotation + info.offY * cosRotation
 
-        love.graphics.draw(
-            part.img,
-            object.x + offsetX,
-            object.y + offsetY,
-            rotation,
-            info.offS,
-            info.offS,
-            weapon.offsetX or 0,
-            weapon.offsetY or 0
-        )
+        if textures.pts[index] then
+            love.graphics.draw(
+                textures.pts[index],
+                object.x + offsetX,
+                object.y + offsetY,
+                rotation,
+                info.offS,
+                info.offS,
+                weapon.offsetX or 0,
+                weapon.offsetY or 0
+            )
+        end
     end
 end
 
