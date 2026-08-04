@@ -45,7 +45,7 @@ function love.load()
         propz   = require("src.soldier_projectiles"),
     }
     soldierScripts._texture_pack_ = {
-            l1 = soldierScripts.draw.loadSoldierTextures("usa"),
+            l1 = soldierScripts.draw.loadSoldierTextures("usa", "testing"),
         }
     soldierScripts.propz.loadTextures("testing", {"bala", "ammo", "grenade", "bullet_carc"})
     soldierScripts.weapons.loadTextures("testing", {"guns/test_rifle", "guns/test_pistol", "throwable/grenade", "guns/test_sniper_rifle"})
@@ -73,7 +73,7 @@ function love.load()
     })
 
     soldierScripts.weapons.load()
-    local debugRifle = require("src.TEST_DEBUG_RIFLE_src")
+    local debugRifle = require("mod.testing.weapons.guns.test_sniper_rifle.TEST_DEBUG_RIFLE_src")
     soldierScripts.weapons.spawnGroundWeapon(debugRifle, 500, 300, 0, "first")
 end
 

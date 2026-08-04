@@ -7,11 +7,11 @@ local setColor = lg.setColor
 local rect = lg.rectangle
 drawer.obj_IMGs = {}
 
-function drawer.loadObjectImages(imageList)
+function drawer.loadObjectImages(imageList, mod)
     local obj_IMGs = {}
 
     for _, name in ipairs(imageList) do
-        local basePath = "textures/def_obj/" .. name .. "/"
+        local basePath = "mod/" .. mod .. "/def_obj/" .. name .. "/"
 
         local image = love.graphics.newImage(basePath .. "img.png")
         local particles = love.graphics.newImage(basePath .. "particles.png")
@@ -64,7 +64,7 @@ function drawer.loadObjectImages(imageList)
     return obj_IMGs
 end
 
-function drawer.loadSoldierTextures(path)
+function drawer.loadSoldierTextures(path, mod)
     local parts = {
         head = "head.png",
         torso = "torso.png",
@@ -97,7 +97,7 @@ function drawer.loadSoldierTextures(path)
     }
 
     for name, file in pairs(parts) do
-        local img = love.graphics.newImage("textures/soldiers/" .. path .. "/base/" .. file)
+        local img = love.graphics.newImage("mod/" .. mod .. "/soldiers/" .. path .. "/base/" .. file)
 
         if animated[name] then
             result[name] = {

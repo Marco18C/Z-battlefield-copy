@@ -30,7 +30,7 @@ function gen.load(mod, levelName)
 
     -- Cargar las imágenes de los objetos necesarios
     local draw = soldierScripts.draw
-    draw.obj_IMGs = draw.loadObjectImages(levelInfo.toLoad_objects)
+    draw.obj_IMGs = draw.loadObjectImages(levelInfo.toLoad_objects, mod)
 
     local level = {
         chunks = {},
