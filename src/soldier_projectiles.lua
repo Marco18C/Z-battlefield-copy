@@ -93,15 +93,15 @@ local function getNearbySoldiers()
     return soldiers or {}
 end
 
-local function getSoldierBox(soldier)
-    return soldier.parts.torso
+local function getSoldierBox(soldier) -- esto es la funcion más decoratva del mundo
+    return soldier.parts.torso        -- o thefuncmostussefulever() pero le cambié el nombre
 end
 
-local function applyTargetDamage(target, amount)
-    if target._projectileSoldier then
-        local stats = target.owner.stats
+local function applyTargetDamage(target, amount, soldier)
+    if soldier then
+        local stats = soldier.stats
         stats.health = math.max(stats.health - amount, 0)
-        if stats.health < 1 then target.owner.die = true end
+        if stats.health < 1 then soldier.die = true end
     else
         prop.applyDamage(target, amount)
     end
@@ -179,7 +179,7 @@ function prop.damageInRadius(x, y, radius, damage, ignoreObj)
         if soldier ~= ignoreObj and not soldier.die then
             local dx, dy = torso.x - x, torso.y - y
             if math.sqrt(dx*dx + dy*dy) <= radius then
-                applyTargetDamage({_projectileSoldier = true, owner = soldier}, damage)
+                applyTargetDamage(torso, damage, soldier)
             end
         end
     end
@@ -260,12 +260,12 @@ end
 -- RESOLUCIÓN DE IMPACTO
 -- devuelve true si el proyectil debe destruirse
 -- ==========================================================
-function prop.resolveHit(p, obj)
+function prop.resolveHit(p, obj, soldier)
     if p.onHit == "damage" then
         if p.damageRadius and p.damageRadius > 0 then
             prop.damageInRadius(p.x, p.y, p.damageRadius, p.damage, p.owner)
         else
-            applyTargetDamage(obj, p.damage)
+            applyTargetDamage(obj, p.damage, soldier)
         end
         return not p.piercing
 
@@ -279,16 +279,16 @@ function prop.resolveHit(p, obj)
         p.vy = (p.vy - 2 * dot * ny) * p.bounceRestitution
         p.angle = math.atan2 and math.atan2(p.vy, p.vx) or p.angle
 
-        applyTargetDamage(obj, p.bounceDamage)
+        applyTargetDamage(obj, p.bounceDamage, soldier)
 
         p.bounces = p.bounces + 1
-        p.lastHit = obj
+        p.lastHit = soldier or obj
 
         return p.bounces > p.maxBounces
 
     elseif p.onHit == "function" then
         if p.onHitFunc then
-            p.onHitFunc(p, obj)
+            p.onHitFunc(p, soldier or obj)
         end
         return not p.piercing
     end
@@ -333,11 +333,9 @@ function prop.update(dt)
             if not destroy then
                 for _, soldier in ipairs(getNearbySoldiers()) do
                     local torso = getSoldierBox(soldier)
-                    local target = {_projectileSoldier = true, owner = soldier,
-                        x = torso.x, y = torso.y, w = torso.w, h = torso.h, rx = torso.rx or 0}
                     if soldier ~= p.owner and not soldier.die and soldier ~= p.lastHit
-                        and checkCollision(p.x, p.y, p.w, p.h, target) then
-                        destroy = prop.resolveHit(p, target)
+                        and checkCollision(p.x, p.y, p.w, p.h, torso) then
+                        destroy = prop.resolveHit(p, torso, soldier)
                         break
                     end
                 end

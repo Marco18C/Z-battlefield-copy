@@ -12,8 +12,11 @@ local rad = rad or function(deg) return deg * math.pi / 180 end
 
 local SIZES = {
     basic = {w = 80,  h = 80},
+    bed   = {w = 160, h = 240},
+    chair = {w = 60,  h = 60},
     secx  = {w = 120, h = 80},
     wall  = {w = 160, h = 15.6},
+    couch = {w = 240, h = 80},
 }
 
 local level = {}
@@ -112,6 +115,35 @@ end
 --  de cada casa, para que ninguna colisione con otra.
 -- ============================================================
 
+local function addHousePiece(h, tex, localX, localY, localRot)
+    local x, y = rotatePoint(h.cx, h.cy, localX, localY, h.ang)
+    addPiece(tex, x, y, h.ang + (localRot or 0))
+end
+
+local function decorateHouse(h)
+    local width = h.hWalls * SIZES.wall.w
+    local height = h.vWalls * SIZES.wall.w
+    local halfW, halfH = width / 2, height / 2
+    local innerTop = -halfH + SIZES.wall.h + 8
+    local innerBottom = halfH - SIZES.wall.h - 8
+
+    -- El espaldar de la cama es su parte superior cuando rx = 0.
+    addHousePiece(h, "bed", -halfW + 105, innerTop + SIZES.bed.h / 2, 0)
+    if h.hWalls >= 4 then
+        addHousePiece(h, "bed", halfW - 105, innerTop + SIZES.bed.h / 2, 0)
+    end
+
+    -- El respaldo del sof? mira al muro inferior.
+    addHousePiece(h, "couch", 0, innerBottom - SIZES.couch.h / 2, rad(180))
+
+    -- Las sillas solo se colocan dentro de las casas.
+    local tableY = math.min(45, innerBottom - 100)
+    addHousePiece(h, "secx", 0, tableY, 0)
+    addHousePiece(h, "chair", -95, tableY, 0)
+    addHousePiece(h, "chair", 95, tableY, 0)
+    addHousePiece(h, "basic", halfW - 50, halfH - 55, 0)
+end
+
 local MARGIN = 200 -- espacio libre mínimo entre casas vecinas
 
 local houseDefs = {
@@ -154,6 +186,7 @@ for i, h in ipairs(houseDefs) do
     h.cx = gridOriginX + col * cellW
     h.cy = gridOriginY + row * cellH
     buildHouse(h.cx, h.cy, h.hWalls, h.vWalls, h.ang, h.door)
+    decorateHouse(h)
 end
 
 -- ============================================================
@@ -199,11 +232,24 @@ for _, r in ipairs(ringDefs) do
     addPiece(nextCoverTex(), gridOriginX + r.dx, gridOriginY + r.dy, rad(math.random(0, 360)))
 end
 
+-- Cobertura exterior adicional; no se colocan sillas fuera de las casas.
+for _, h in ipairs(houseDefs) do
+    local halfW, halfH = h.halfW, h.halfH
+    local outsideX, outsideY = halfW + 75, halfH + 75
+    addHousePiece(h, "basic", -outsideX, -halfH * 0.45, 0)
+    addHousePiece(h, "basic", outsideX, halfH * 0.45, rad(90))
+    addHousePiece(h, "secx", -halfW * 0.45, -outsideY, rad(90))
+    addHousePiece(h, "secx", halfW * 0.45, outsideY, rad(-90))
+end
+
 return {
     toLoad_objects = {
         "basic",
+        "bed",
+        "chair",
         "secx",
         "wall",
+        "couch",
     },
     level = level,
 }
