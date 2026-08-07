@@ -1,11 +1,13 @@
-local soldierTemplate = require("src.soldier_template")
+local SOLDIER_BASES = {
+    usa = "mod.testing.soldiers.usa.info",
+}
 
 local function lerpAngle(a, b, t)
     local diff = (b - a + math.pi) % (math.pi * 2) - math.pi
     return a + diff * t
 end
 
-function distance(x1, y1, x2, y2)
+local function distance(x1, y1, x2, y2)
     local dx = x2 - x1
     local dy = y2 - y1
     return dx * dx + dy * dy
@@ -105,7 +107,7 @@ local function updateHeadToso(soldier, dt)
         local speed = soldier.stats.speed
         local ctrl = soldier.controls
 
-        local w, h = torso.w * 2, torso.h * 2
+        local w, h = torso.w, torso.h
 
         local dx, dy = 0, 0
 
@@ -414,10 +416,71 @@ local function setValue(tbl, path, value)
     t[path[#path]] = value
 end
 
+local function loadSoldierBase(name)
+    local moduleName = SOLDIER_BASES[name or "usa"]
+    assert(moduleName, "Base de soldado no disponible: " .. tostring(name))
+    return require(moduleName)
+end
+
+local function findWeaponFile(category, weaponName)
+    local categoryPath = "mod/testing/weapons/" .. category
+    local weaponPath = categoryPath .. "/" .. weaponName
+
+    if love.filesystem.getInfo(weaponPath, "directory") == nil then
+        return nil
+    end
+
+    -- info.lua es la convenci?n principal; si no existe, se usa
+    -- cualquier otro archivo Lua de la carpeta (por ejemplo GRENADE_src.lua).
+    local items = love.filesystem.getDirectoryItems(weaponPath)
+    for _, fileName in ipairs(items) do
+        if fileName == "info.lua" then
+            return weaponPath .. "/" .. fileName
+        end
+    end
+
+    return nil
+end
+
+local function resolveWeaponName(name, fallback)
+    local weaponName = name or fallback
+    local filePath = findWeaponFile("guns", weaponName)
+        or findWeaponFile("throwable", weaponName)
+
+    assert(filePath, "No se encontr? el arma '" .. tostring(weaponName)
+        .. "' en mod/testing/weapons/guns o throwable")
+    return filePath
+end
+
+local function loadWeapon(filePath)
+    local chunk, err = love.filesystem.load(filePath)
+    assert(chunk, "No se pudo cargar el arma '" .. filePath .. "': " .. tostring(err))
+
+    local weapon = chunk()
+    assert(type(weapon) == "table", "El archivo de arma debe retornar una tabla: " .. filePath .. " : si lo que está dentro es una  función ten cuidado")
+    return weapon
+end
+
 function spawnSoldier(cfg)
     cfg = cfg or {}
 
-    local s = deepCopy(soldierTemplate)
+    local baseName = cfg.soldier or cfg.base or "usa"
+    local s = deepCopy(loadSoldierBase(baseName))
+
+    -- Armas independientes de la base del soldado.
+    -- `primary` y `secondary` son la interfaz principal de spawn.
+    -- Tambin se aceptan `weapons.first` y `weapons.second`.
+    local requestedWeapons = cfg.weapons or {}
+    local primary = cfg.primary or cfg.primaryWeapon or requestedWeapons.first
+    local secondary = cfg.secondary or cfg.secondaryWeapon or requestedWeapons.second
+    local grenade = cfg.grenade or requestedWeapons.grenade
+
+    s.magazine.first = deepCopy(loadWeapon(
+        resolveWeaponName(primary, "test_rifle")))
+    s.magazine.second = deepCopy(loadWeapon(
+        resolveWeaponName(secondary, "test_pistol")))
+    s.magazine.grenade = deepCopy(loadWeapon(
+        resolveWeaponName(grenade, "grenade")))
 
     -- Datos generales
     s.player = cfg.player or false
@@ -436,6 +499,9 @@ function spawnSoldier(cfg)
 
     -- Arma equipada
     s.magazine.actual = cfg.weapon or s.magazine.actual
+    if not s.magazine[s.magazine.actual] then
+        s.magazine.actual = "first"
+    end
 
     -- Sobrescribir cualquier propiedad arbitraria
     if cfg.override then
@@ -444,7 +510,8 @@ function spawnSoldier(cfg)
         end
     end
 
-    s.textures = soldierScripts._texture_pack_.l1
+    s.textures = soldierScripts._texture_pack_[baseName]
+        or soldierScripts._texture_pack_.l1
 
     table.insert(soldiers, s)
     return s
@@ -462,9 +529,6 @@ return function(body, dt)
 
     updateRightHand(soldier, soldier.parts.RIGHTforearm.arm, differenceR)
     updateLeftHand(soldier, soldier.parts.LEFTforearm.arm, differenceR)
-
-    -- updateFeet(soldier, dt)
-    -- updateLegs(soldier)
 
     updateControls(soldier, dt)
 end

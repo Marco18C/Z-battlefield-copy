@@ -1,4 +1,4 @@
-local noneTEX = love.graphics.newImage("textures/none.png")
+local noneTEX = love.graphics.newImage(".png")
 local drawer = {}
 
 --==-- UTILIDADES --==--

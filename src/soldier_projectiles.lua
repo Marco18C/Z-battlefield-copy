@@ -89,13 +89,6 @@ end
 -- ==========================================================
 -- BÚSQUEDA DE OBJETOS EN CHUNKS CERCANOS
 -- ==========================================================
-local function getNearbySoldiers()
-    return soldiers or {}
-end
-
-local function getSoldierBox(soldier) -- esto es la funcion más decoratva del mundo
-    return soldier.parts.torso        -- o thefuncmostussefulever() pero le cambié el nombre
-end
 
 local function applyTargetDamage(target, amount, soldier)
     if soldier then
@@ -174,11 +167,11 @@ function prop.damageInRadius(x, y, radius, damage, ignoreObj)
             end
         end
     end
-    for _, soldier in ipairs(getNearbySoldiers()) do
-        local torso = getSoldierBox(soldier)
+    for _, soldier in ipairs(soldiers) do
+        local torso = soldier.parts.torso
         if soldier ~= ignoreObj and not soldier.die then
             local dx, dy = torso.x - x, torso.y - y
-            if math.sqrt(dx*dx + dy*dy) <= radius then
+            if math.sqrt(dx*dx + dy*dy) <= radius then -- distancia plana, no usar la otra función porque está tocada
                 applyTargetDamage(torso, damage, soldier)
             end
         end
@@ -187,7 +180,7 @@ end
 
 -- ==========================================================
 -- DISPARO
--- prop.shoot(x, y, angle, {
+-- soldierScripts.propz.shoot(x, y, angle, {
 --     speed = 400,
 --     accel = 0,              -- aceleración en dirección del movimiento
 --     w = 6, h = 6,           -- tamaño de colisión del proyectil
@@ -249,7 +242,7 @@ function prop.shoot(x, y, angle, opts)
     return proj
 end
 
--- variante que dispara hacia un punto (tx, ty) en vez de un ángulo
+-- variante que dispara hacia un punto (tx, ty) en vez de un angulo
 function prop.shootAt(x, y, tx, ty, opts)
     local angle = math.atan2 and math.atan2(ty - y, tx - x)
         or math.atan((ty - y) / (tx - x + 1e-9))
@@ -331,8 +324,8 @@ function prop.update(dt)
             end
 
             if not destroy then
-                for _, soldier in ipairs(getNearbySoldiers()) do
-                    local torso = getSoldierBox(soldier)
+                for _, soldier in ipairs(soldiers) do
+                    local torso = soldier.parts.torso
                     if soldier ~= p.owner and not soldier.die and soldier ~= p.lastHit
                         and checkCollision(p.x, p.y, p.w, p.h, torso) then
                         destroy = prop.resolveHit(p, torso, soldier)
